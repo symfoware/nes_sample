@@ -24,3 +24,8 @@ Ubuntu + cc65クロスコンパイラでファミコン用のプログラムを�
 スプライトの表示について調べたサンプルです。  
 [Ubuntuでファミコンプログラム　その４(スプライト)](https://symfoware.blog.fc2.com/blog-entry-1200.html)	  
 
+## sample5
+
+コントローラーの入力について調べたサンプルです。  
+[Ubuntuでファミコンプログラム　その５(スプライトを動かす)](https://symfoware.blog.fc2.com/blog-entry-1201.html)	  
+
