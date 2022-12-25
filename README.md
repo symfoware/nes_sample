@@ -14,10 +14,13 @@ Ubuntu + cc65クロスコンパイラでファミコン用のプログラムを�
 ひらがなの表示や表示位置の変更。文字色の変更を試してみたサンプルです。  
 [Ubuntuでファミコンプログラム　その２(YY-CHR)](https://symfoware.blog.fc2.com/blog-entry-1198.html)	  
 
-
 ## sample3
 
 背景の表示やパレットについて調べたサンプルです。    
-[buntuでファミコンプログラム　その３(背景描画とパレット)](https://symfoware.blog.fc2.com/blog-entry-1199.html)	  
+[Ubuntuでファミコンプログラム　その３(背景描画とパレット)](https://symfoware.blog.fc2.com/blog-entry-1199.html)	  
 
+## sample4
+
+スプライトの表示について調べたサンプルです。  
+[Ubuntuでファミコンプログラム　その４(スプライト)](https://symfoware.blog.fc2.com/blog-entry-1200.html)	  
 
