@@ -34,3 +34,8 @@ Ubuntu + cc65クロスコンパイラでファミコン用のプログラムを�
 DMAを使用したスプライト情報の一括設定について調べたサンプルです。  
 [Ubuntuでファミコンプログラム　その６(DMAを使用したスプライト情報の一括設定)](https://symfoware.blog.fc2.com/blog-entry-1202.html)	  
 
+## sample7
+
+VBlank割り込みを有効にし、割り込みが発生したタイミングで処理を行うサンプルです。  
+[Ubuntuでファミコンプログラム　その６(DMAを使用したスプライト情報の一括設定)](https://symfoware.blog.fc2.com/blog-entry-1202.html)	  
+

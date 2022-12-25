@@ -1,4 +1,4 @@
-; スプライト
+; DMAを使用したスプライト情報の一括設定
 .setcpu		"6502"
 .autoimport	on
 
