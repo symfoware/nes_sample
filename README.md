@@ -37,5 +37,11 @@ DMAを使用したスプライト情報の一括設定について調べたサ�
 ## sample7
 
 VBlank割り込みを有効にし、割り込みが発生したタイミングで処理を行うサンプルです。  
-[Ubuntuでファミコンプログラム　その６(DMAを使用したスプライト情報の一括設定)](https://symfoware.blog.fc2.com/blog-entry-1202.html)	  
+[Ubuntuでファミコンプログラム　その６(DMAを使用したスプライト情報の一括設定)](https://symfoware.blog.fc2.com/blog-entry-1203.html)	  
+
+## sample8
+
+矩形波サウンドで音を鳴らす処理を行うサンプルです。  
+[Ubuntuでファミコンプログラム　その８(矩形波サウンド)](https://symfoware.blog.fc2.com/blog-entry-1204.html)	  
+
 
