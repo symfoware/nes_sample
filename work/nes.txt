@@ -6,6 +6,9 @@ https://github.com/suzukiplan/mgp-fc?tab=readme-ov-file
 ｷﾞｺ猫でもわかるファミコンプログラミング
 http://gikofami.fc2web.com/
 
+NES研究所
+https://hp.vector.co.jp/authors/VA042397/nes/6502.html
+
 数値計算の考え方
 https://taotao54321.hatenablog.com/entry/2017/04/09/151355
 
