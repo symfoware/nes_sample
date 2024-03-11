@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no">
+    <title>CHR</title>
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
+    <!-- https://bugzmanov.github.io/nes_ebook/chapter_6_3.html -->
+</head>
+<body>
+    <div>
+        <input type="file" id="file" />
+        <button id="save">保存</button>
+    </div>
+    <div>
+        <!-- <canvas id="canvas" width="1024" height="8192"></canvas> -->
+        <canvas id="canvas" width="1024" height="960"></canvas>
+    </div>
+<script>
+$(() => {
+
+    let chr = null;
+    let chips = [];
+
+    const loadCHR = (data) => {
+        const viewIt = function(data) {
+            let index = 0;
+            const view = new Int8Array(data);
+            return function() {
+                if (view.length < index + 16) {
+                    return null;
+                }
+                let chip = [];
+                for (let r = index; r < index + 8; r++) {
+                    const row = [];
+                    let upper = view[r];
+                    let lower = view[r+8];
+
+                    for (let i = 0; i < 8; i++) {
+                        let value = (1 & upper) << 1 | (1 & lower);
+                        upper = upper >> 1;
+                        lower = lower >> 1;
+                        row.unshift(value);
+                    }
+                    chip.push(row);
+                }
+                index += 16;
+                return chip;
+            }
+        };
+
+        const chips = [];
+        const it = viewIt(data);
+        let chip = it();
+        while (chip) {
+            chips.push(chip);
+            chip = it();
+        }
+        console.log(chips.length / 16 * 8 * 8);
+
+
+
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = 'rgb( 0, 0, 0)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // 16chipが横に並ぶ
+        const px = 8;
+        let h = 0;
+        //while(chips.length) {
+        for (let i = 0; i < 15; i++) {
+            for (let w = 0; w < 16; w++) {
+                //chip = chips.shift();
+                chip = chips[i*16+w];
+                for (let r = 0; r < 8; r++){
+                    const row = chip[r];
+                    for (let c = 0; c < 8; c++) {
+                        const p = row[c];
+                        switch(p) {
+                            case 1:
+                                ctx.fillStyle = 'rgb( 255, 0, 0)';
+                                ctx.fillRect(px * c + (px * w * 8), px * r + (px * h * 8), px, px);
+                            break;
+                            case 2:
+                                ctx.fillStyle = 'rgb( 0, 255, 0)';
+                                ctx.fillRect(px * c+ (px * w * 8), px * r + (px * h * 8), px, px);
+                            break;
+                            case 3:
+                                ctx.fillStyle = 'rgb( 0, 0, 255)';
+                                ctx.fillRect(px * c+ (px * w * 8), px * r + (px * h * 8), px, px);
+                            break;
+                        }
+                    }
+                }
+            }
+            h++;
+        }
+        
+        
+
+
+        //const view = new Int8Array(chr);
+        //console.log(view.shift());
+
+        /*
+        let chip = [];
+        for (let r = 0; r < 8; r++) {
+            const row = [];
+            let upper = view[r];
+            let lower = view[r+8];
+
+            for (let i = 0; i < 8; i++) {
+                let value = (1 & upper) << 1 | (1 & lower);
+                upper = upper >> 1;
+                lower = lower >> 1;
+                row.unshift(value);
+            }
+            chip.push(row);
+        }
+        console.log(chip);
+        chips.push(chip)
+
+        
+        
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = 'rgb( 0, 0, 0)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        const px = 16;
+        for (let r = 0; r < 8; r++){
+            const row = chip[r];
+            for (let c = 0; c < 8; c++) {
+                const p = row[c];
+                switch(p) {
+                    case 1:
+                        ctx.fillStyle = 'rgb( 255, 0, 0)';
+                        ctx.fillRect(px * c, px * r, px, px);
+                    break;
+                    case 2:
+                        ctx.fillStyle = 'rgb( 0, 255, 0)';
+                        ctx.fillRect(px * c, px * r, px, px);
+                    break;
+                    case 3:
+                        ctx.fillStyle = 'rgb( 0, 0, 255)';
+                        ctx.fillRect(px * c, px * r, px, px);
+                    break;
+                }
+            }
+        }
+        */
+        
+    };
+
+    $('#file').on('change', function(event) {
+        const reader = new FileReader();
+        // 読み込みが完了したら、結果を表示
+        reader.onload = function (event) {
+            loadCHR(event.target.result);
+        };
+        // ファイルをテキストとして読み込む
+        reader.readAsArrayBuffer(event.target.files[0]);
+    });
+
+    $('#save').on('click', function() {
+        // aタグの生成
+        const a = document.createElement('a');
+        // レスポンスからBlobオブジェクト＆URLの生成
+        const blobUrl = window.URL.createObjectURL(new Blob([chr], {
+            type: chr.type
+        }));
+        document.body.appendChild(a);
+        a.style = 'display: none';
+        // 生成したURLをセット
+        a.href = blobUrl;
+        // ダウンロードの時にファイル名として表示される
+        a.download = 'downlad.chr';
+        // クリックイベント発火
+        a.click();
+    });
+
+});
+/*
+  // inputタグの要素を取得
+  const fileInput = document.getElementById("fileInput");
+
+  // ファイルが選択されたら、読み込む
+  fileInput.addEventListener("change", function (event) {
+    const file = event.target.files[0];
+    readFile(file);
+  });
+
+  // FileReader APIを使ってファイルを読み込む関数
+  function readFile(file) {
+    const reader = new FileReader();
+
+    // 読み込みが完了したら、結果を表示
+    reader.onload = function (event) {
+      console.log(event.target.result);
+    };
+
+    // ファイルをテキストとして読み込む
+    reader.readAsArrayBuffer(file);
+  }
+  */
+</script>
+
+</body>
+</html>
