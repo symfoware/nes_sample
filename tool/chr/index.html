@@ -5,7 +5,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no">
     <title>CHR</title>
     <script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
-    <!-- https://bugzmanov.github.io/nes_ebook/chapter_6_3.html -->
+    <!-- ref: https://bugzmanov.github.io/nes_ebook/chapter_6_3.html -->
+
+<style type="text/css">
+.canvas-wrapper {
+    position: relative;
+}
+.canvas-wrapper canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+}
+</style>
 </head>
 <body>
     <div>
@@ -14,16 +25,18 @@
         <button id="prev">＜</button>
         <button id="next">＞</button>
     </div>
-    <div>
-        <!-- <canvas id="canvas" width="1024" height="8192"></canvas> -->
-        <canvas id="canvas" width="1024" height="1024"></canvas>
+    <!-- https://qiita.com/Teinishi/items/4b84deadb26f1c450722 -->
+    <div class="canvas-wrapper">
+        <canvas id="preview" width="1024" height="1024"></canvas>
+        <canvas id="previewCover" width="1024" height="1024"></canvas>
+        
     </div>
 <script type="module">
 import { CHR } from './chr.js';
 $(() => {
 
     // 解析クラス初期化
-    const chr = new CHR(canvas);
+    const chr = new CHR(preview, previewCover);
 
     $('#file').on('change', function(event) {
         const reader = new FileReader();
