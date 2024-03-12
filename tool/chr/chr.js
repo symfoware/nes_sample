@@ -6,8 +6,6 @@ class Chip {
 
     constructor() {
         this.rows = [];
-        this.a = [];
-        this.b = [];
     }
 
     load(view, index) {
@@ -17,8 +15,6 @@ class Chip {
             // 8バイト間隔でデータを取得
             let upper = view[r];
             let lower = view[r + 8];
-            this.a.push(upper);
-            this.b.push(lower);
 
             // ビットを足す
             for (let i = 0; i < 8; i++) {
@@ -35,9 +31,29 @@ class Chip {
     }
 
     toArray() {
-        // 動作確認用
+        const view = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+        if (this.rows.length === 0) {
+            return view;
+        }
+        
         // 現在のrowsを参照してバイナリデータに変換する
-        return this.a.concat(this.b);
+        for (let r = 0; r < 8; r++) {
+            const row = this.rows[r];
+            let upper = 0;
+            let lower = 0;
+            for (let i = 0; i < 8; i++) {
+                let value = row[i]; // 0-3
+                upper = upper << 1;
+                lower = lower << 1;
+
+                upper += (value & 2) >> 1;
+                lower += value & 1;
+            }
+            view[r] = upper;
+            view[r + 8] = lower;
+        }
+        
+        return view;
     }
 }
 
@@ -163,3 +179,16 @@ export class CHR {
         return !(this.maxPage <= this.viewPage);
     }
 }
+
+
+/*
+レイヤーをかぶせてグリッド表示
+レイアウト微調整
+左側に編集画面表示
+カーソルで対象ドットを移動
+ドットが打てるように
+パレット指定機能追加
+パレットの保存機能
+表示モード変更 通常か横並び4チップを2x2で表示
+*/
+
