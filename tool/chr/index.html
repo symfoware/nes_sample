@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no">
     <title>CHR</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/picnic">
     <script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
     <!-- ref: https://bugzmanov.github.io/nes_ebook/chapter_6_3.html -->
 
@@ -19,24 +20,43 @@
 </style>
 </head>
 <body>
-    <div>
-        <input type="file" id="file" />
+    <nav>
+        <button id="open">ファイルを開く</button>
         <button id="save">保存</button>
+
+        <button id="open_palette">パレットを開く</button>
+        <button id="save_palette">パレットを保存</button>
+
         <button id="prev">＜</button>
         <button id="next">＞</button>
-    </div>
-    <!-- https://qiita.com/Teinishi/items/4b84deadb26f1c450722 -->
-    <div class="canvas-wrapper">
-        <canvas id="preview" width="1024" height="1024"></canvas>
-        <canvas id="previewCover" width="1024" height="1024"></canvas>
-        
-    </div>
+        <input type="file" id="file" style="display: none;"/>
+    </nav>
+    <main>
+        <section class="flex five" style="padding: 60px 10px 0">
+            <!-- https://qiita.com/Teinishi/items/4b84deadb26f1c450722 -->
+            <div class="third">
+                <div class="canvas-wrapper" style="padding-left: 20px;">
+                    <canvas id="editor" width="512" height="512"></canvas>
+                    <canvas id="editorLayer" width="512" height="512"></canvas>
+                </div>
+            </div>
+            <div class="two-third">
+                <div class="canvas-wrapper">
+                    <canvas id="preview" width="1024" height="1024"></canvas>
+                    <canvas id="previewLayer" width="1024" height="1024"></canvas>
+                </div>
+            </div>
+        </section>
+        <div>
+
+        </div>
+    </main>
 <script type="module">
 import { CHR } from './chr.js';
 $(() => {
 
     // 解析クラス初期化
-    const chr = new CHR(preview, previewCover);
+    const chr = new CHR(editor, editorLayer, preview, previewLayer);
 
     $('#file').on('change', function(event) {
         const reader = new FileReader();
@@ -73,6 +93,9 @@ $(() => {
     $('#next').on('click', function() {
         chr.next();
     });
+    $('#open').on('click', function() {
+        $('#file').click();
+    })
 
 });
 </script>

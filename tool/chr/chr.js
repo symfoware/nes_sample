@@ -6,6 +6,10 @@ const PREVIEW_HEIGHT = 16;
 const PREVIEW_PX = 8;
 const PREVIEW_GRID = PREVIEW_PX * 8;
 
+// 編集画面の表示ピクセル
+const EDITOR_PX = 32;
+
+// チップ単位でのエンコード、デコード
 class Chip {
 
     constructor() {
@@ -61,6 +65,7 @@ class Chip {
     }
 }
 
+// イベント処理
 class EventListener {
     constructor(owner) {
         this.owner = owner;
@@ -71,20 +76,62 @@ class EventListener {
         const x = Math.trunc(event.offsetX / PREVIEW_GRID);
         const y = Math.trunc(event.offsetY / PREVIEW_GRID);
 
-        this.owner.drawPreviewGrid(x, y);
+        // プレビューのグリッド表示位置を更新
+        this.owner.drawPreviewGrid(x, y);        
         
     }
 }
 
 
+// Canvas操作
+class CHRCanvas {
+    constructor(main, layer) {
+        this.main = main;
+        this.layer = layer;
+        this.mctx = main.getContext('2d');
+        this.lctx = layer.getContext('2d');
+
+        this.width = this.main.width;
+        this.height = this.main.height;
+    }
+
+    clearMain() {
+        this.mctx.fillStyle = 'rgb( 0, 0, 0)';
+        this.mctx.fillRect(0, 0, this.width, this.height);
+    }
+
+    drawPixel(x, y, unit, style) {
+        this.mctx.fillStyle = style;
+        this.mctx.fillRect(x, y, unit, unit);
+    }
+
+    clearLayer() {
+        this.lctx.clearRect(0, 0, this.width, this.height);
+    }
+
+    setLayerStrokeStyle(lineWidth, strokeStyle) {
+        this.lctx.lineWidth = lineWidth;
+        this.lctx.strokeStyle = strokeStyle;
+    }
+    
+    strokeLayerRect(x, y, width, height) {
+        this.lctx.strokeRect(x, y, width, height);
+    }
+
+    fillLayerRect(x, y, width, height, style) {
+        this.lctx.fillStyle = style;
+        this.lctx.fillRect(x, y, width, height);
+    }
+
+}
+
 
 export class CHR {
 
-    constructor(preview, previewCover) {
-        this.preview = preview;
-        this.previewCover = previewCover;
-        this.pctx = preview.getContext('2d');
-        this.pcctx = previewCover.getContext('2d');
+    constructor(editor, editorLayer, preview, previewLayer) {
+        
+        this.editor = new CHRCanvas(editor, editorLayer);
+        this.preview = new CHRCanvas(preview, previewLayer);
         
         // 8x8を1chipとして保存
         this.chips = []; // length: 8192, 2048chip
@@ -93,7 +140,9 @@ export class CHR {
 
         const listener = new EventListener(this);
         // プレビュークリック
-        this.previewCover.addEventListener('click', (event) => { listener.previewClick(event) });
+        previewLayer.addEventListener('click', (event) => { listener.previewClick(event) });
+
+        window.addEventListener('keydown', (event) => { console.log(event); });
     }
 
     // chr形式のデータをロード
@@ -116,29 +165,79 @@ export class CHR {
         this.maxPage = Number(this.chips.length / 256) - 1;
         //console.log(this.chips.length / 16 * 8 * 8);
 
-        this.drawPreview(0);
-        
+        this.drawPreview();
+
+        this.drawEditorGrid()
     }
 
-    // 1画面分のデータを表示
-    drawPreview(pageIndex) {
-        // 背景を黒でクリア
-        this.pctx.fillStyle = 'rgb( 0, 0, 0)';
-        this.pctx.fillRect(0, 0, this.preview.width, this.preview.height);
 
-        // 16chipが横に並ぶ
-        const pageShift = PREVIEW_WIDTH * PREVIEW_HEIGHT * pageIndex;
-        for (let y = 0; y < PREVIEW_HEIGHT; y++) {
-            for (let x = 0; x < PREVIEW_WIDTH; x++) {
-                const chip = this.chips[(x + y * 16) + pageShift];
-                this.drawPreviewChip(chip, x, y, pageShift);
+    // ----------------------------------------------------------------------
+    // 左側 編集画面関連処理
+    drawEditor(previewX, previewY) {
+        // 背景を黒でクリア
+        this.editor.clearMain();
+
+        // 配列から取得する位置の補正
+        let shift = previewX + (previewY * PREVIEW_WIDTH);
+        // add page shift
+        shift += PREVIEW_WIDTH * PREVIEW_HEIGHT * this.viewPage;
+
+        for (let y = 0; y < 2; y++) {
+            for (let x = 0; x < 2; x++) {
+                const chip = this.chips[(x + y * 16) + shift];
+                this.drawChip(chip, x, y, EDITOR_PX, this.editor);
+            }
+        }
+    }
+
+    drawEditorGrid(x, y) {
+        // 背景をクリア
+        this.editor.clearLayer();
+        // 詳細表示している範囲を囲む
+        this.editor.setLayerStrokeStyle(1, '#38f');
+
+        // 小グリッド表示
+        for (let x = 0; x < (EDITOR_PX * 16); x += EDITOR_PX) {
+            for (let y = 0; y < (EDITOR_PX * 16); y += EDITOR_PX) {
+                this.editor.strokeLayerRect(x, y, EDITOR_PX, EDITOR_PX);
             }
         }
 
-        this.drawPreviewGrid(0, 0);
+        // 8x8毎の大グリッド表示
+        this.editor.setLayerStrokeStyle(2, '#f88');
+        for (let x = 0; x < 2; x++) {
+            for (let y = 0; y < 2; y++) {
+                this.editor.strokeLayerRect(x * EDITOR_PX * 8, y * EDITOR_PX * 8, EDITOR_PX * 8, EDITOR_PX * 8);
+            }
+        }
+
+        // 一番上にカーソル表示
+        this.editor.strokeLayerRect(0, 0, EDITOR_PX, EDITOR_PX);
+        this.editor.fillLayerRect(0, 0, EDITOR_PX, EDITOR_PX, 'rgba( 255, 0, 0, 0.5)');
     }
 
-    drawPreviewGrid(x, y) {
+
+    // ----------------------------------------------------------------------
+    // 右側 プレビュー画面関連処理
+
+    // 1画面分のデータを表示
+    drawPreview(withEditor=true) {
+        // 背景を黒でクリア
+        this.preview.clearMain();
+
+        // 16chipが横に並ぶ
+        const pageShift = PREVIEW_WIDTH * PREVIEW_HEIGHT * this.viewPage;
+        for (let y = 0; y < PREVIEW_HEIGHT; y++) {
+            for (let x = 0; x < PREVIEW_WIDTH; x++) {
+                const chip = this.chips[(x + y * 16) + pageShift];
+                this.drawChip(chip, x, y, PREVIEW_PX, this.preview);
+            }
+        }
+
+        this.drawPreviewGrid(0, 0, withEditor);
+    }
+
+    drawPreviewGrid(x, y, withEditor=true) {
         if ((PREVIEW_WIDTH - 1) <= x) {
             x -= 1;
         }
@@ -147,15 +246,20 @@ export class CHR {
         }
 
         // 背景をクリア
-        this.pcctx.clearRect(0, 0, this.previewCover.width, this.previewCover.height);
+        this.preview.clearLayer();
         // 詳細表示している範囲を囲む
-        this.pcctx.lineWidth = 3;
-        this.pcctx.strokeStyle = "#38f";
-        this.pcctx.strokeRect(PREVIEW_GRID * x, PREVIEW_GRID * y, PREVIEW_PX * 8 * 2, PREVIEW_PX * 8 * 2);
+        this.preview.setLayerStrokeStyle(3, '#38f');
+        this.preview.strokeLayerRect(PREVIEW_GRID * x, PREVIEW_GRID * y, PREVIEW_PX * 8 * 2, PREVIEW_PX * 8 * 2);
+
+        if (!withEditor) {
+            return;
+        }
+
+        // 同時にエディターも更新
+        this.drawEditor(x, y);
     }
 
-    drawPreviewChip(chip, x, y) {
-        const px = PREVIEW_PX;
+    drawChip(chip, x, y, px, chrCanvas) {
         const shiftX = (px * x * 8);
         const shiftY = (px * y * 8);
         
@@ -181,12 +285,14 @@ export class CHR {
                     continue;
                 }
 
-                this.pctx.fillStyle = style;
-                this.pctx.fillRect(px * c + shiftX, px * r + shiftY, px, px);
+                chrCanvas.drawPixel(px * c + shiftX, px * r + shiftY, px, style);
             }
         }
     }
 
+    // ----------------------------------------------------------------------
+    // 画面操作
+    
     // UInt8Arrayへ変換
     toArray() {
         const data = [];
@@ -202,7 +308,7 @@ export class CHR {
             return;
         }
         this.viewPage -= 1;
-        this.drawPreview(this.viewPage);
+        this.drawPreview();
     }
 
     // 1ページ進む
@@ -211,7 +317,7 @@ export class CHR {
             return;
         }
         this.viewPage += 1;
-        this.drawPreview(this.viewPage);
+        this.drawPreview();
     }
 
     hasPrev() {
@@ -225,14 +331,12 @@ export class CHR {
 
 
 /*
->レイヤーをかぶせてグリッド表示
->マウスクリックでグリッド位置変更
-レイアウト微調整
-左側に編集画面表示
-カーソルで対象ドットを移動
+エディターのカーソルで対象ドットを移動
 ドットが打てるように
+ドットの座標情報を表示(メモリマップ的な)
 パレット指定機能追加
 パレットの保存機能
+
 表示モード変更 通常か横並び4チップを2x2で表示
 */
 
