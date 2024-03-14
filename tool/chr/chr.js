@@ -69,9 +69,19 @@ class Chip {
 class EventListener {
     constructor(owner) {
         this.owner = owner;
+        this.cursorX = 0;
+        this.cursorY = 0;
     }
 
-    previewClick(event) {
+    clickEditor(event) {
+        // dot単位で移動させる
+        this.cursorX = Math.trunc(event.offsetX / EDITOR_PX);
+        this.cursorY = Math.trunc(event.offsetY / EDITOR_PX);
+        this.owner.drawCursor(this.cursorX, this.cursorY);
+
+    }
+
+    clickPreview(event) {
         // chip単位で移動させる
         const x = Math.trunc(event.offsetX / PREVIEW_GRID);
         const y = Math.trunc(event.offsetY / PREVIEW_GRID);
@@ -80,16 +90,82 @@ class EventListener {
         this.owner.drawPreviewGrid(x, y);        
         
     }
+
+    keydown(event) {
+        let moveCursor = false;
+        let changeDot = -1;
+        switch(event.key){
+            case 'ArrowLeft':
+                console.log('左');
+                this.cursorX -= 1;
+                moveCursor = true;
+            break;
+            case 'ArrowRight':
+                console.log('右');
+                this.cursorX += 1;
+                moveCursor = true;
+            break;
+            case 'ArrowUp':
+                console.log('上');
+                this.cursorY -= 1;
+                moveCursor = true;
+            break;
+            case 'ArrowDown':
+                console.log('下');
+                this.cursorY += 1;
+                moveCursor = true;
+            break;
+            case '0':
+                //console.log('0');
+                changeDot = 0;
+            break;
+            case '1':
+                //console.log('1');
+                changeDot = 1;
+            break;
+            case '2':
+                //console.log('2');
+                changeDot = 2;
+            break;
+            case '3':
+                //console.log('3');
+                changeDot = 3;
+            break;
+        }
+        if(moveCursor) {
+            this.cursorX = Math.max(this.cursorX, 0);
+            this.cursorX = Math.min(this.cursorX, 15);
+
+            this.cursorY = Math.max(this.cursorY, 0);
+            this.cursorY = Math.min(this.cursorY, 15);
+
+            this.owner.drawCursor(this.cursorX, this.cursorY);
+            event.preventDefault();
+            return;
+        }
+
+        if (changeDot !== -1) {
+            this.owner.changeDot(this.cursorX, this.cursorY, changeDot);
+            event.preventDefault();
+            return;
+        }
+        
+    }
+
 }
 
 
 // Canvas操作
 class CHRCanvas {
-    constructor(main, layer) {
+    constructor(main, layer, cursor) {
         this.main = main;
         this.layer = layer;
+        this.cursor = cursor;
         this.mctx = main.getContext('2d');
         this.lctx = layer.getContext('2d');
+        if (cursor) {
+            this.cctx = cursor.getContext('2d');
+        }
 
         this.width = this.main.width;
         this.height = this.main.height;
@@ -123,14 +199,26 @@ class CHRCanvas {
         this.lctx.fillRect(x, y, width, height);
     }
 
+    drawCursor(x, y) {
+        if (!this.cctx) {
+            return;
+        }
+        this.cctx.clearRect(0, 0, this.width, this.height);
+        this.cctx.lineWidth = 2;
+        this.cctx.strokeStyle = '#f88';
+        this.cctx.strokeRect(x * EDITOR_PX, y * EDITOR_PX, EDITOR_PX, EDITOR_PX);
+        this.cctx.fillStyle = 'rgba( 255, 0, 0, 0.5)';
+        this.cctx.fillRect(x * EDITOR_PX, y * EDITOR_PX, EDITOR_PX, EDITOR_PX);
+    }
+
 }
 
 
 export class CHR {
 
-    constructor(editor, editorLayer, preview, previewLayer) {
+    constructor(editor, editorLayer, editorCursor, preview, previewLayer) {
         
-        this.editor = new CHRCanvas(editor, editorLayer);
+        this.editor = new CHRCanvas(editor, editorLayer, editorCursor);
         this.preview = new CHRCanvas(preview, previewLayer);
         
         // 8x8を1chipとして保存
@@ -139,10 +227,11 @@ export class CHR {
         this.maxPage = 0;
 
         const listener = new EventListener(this);
-        // プレビュークリック
-        previewLayer.addEventListener('click', (event) => { listener.previewClick(event) });
+        // クリックイベント設定
+        editorCursor.addEventListener('click', (event) => { listener.clickEditor(event) });
+        previewLayer.addEventListener('click', (event) => { listener.clickPreview(event) });
 
-        window.addEventListener('keydown', (event) => { console.log(event); });
+        window.addEventListener('keydown', (event) => { listener.keydown(event); });
     }
 
     // chr形式のデータをロード
@@ -170,12 +259,12 @@ export class CHR {
         this.drawEditorGrid()
     }
 
-
     // ----------------------------------------------------------------------
     // 左側 編集画面関連処理
     drawEditor(previewX, previewY) {
         // 背景を黒でクリア
         this.editor.clearMain();
+        this.editorChips = [];
 
         // 配列から取得する位置の補正
         let shift = previewX + (previewY * PREVIEW_WIDTH);
@@ -186,11 +275,12 @@ export class CHR {
             for (let x = 0; x < 2; x++) {
                 const chip = this.chips[(x + y * 16) + shift];
                 this.drawChip(chip, x, y, EDITOR_PX, this.editor);
+                this.editorChips.push(chip);
             }
         }
     }
 
-    drawEditorGrid(x, y) {
+    drawEditorGrid() {
         // 背景をクリア
         this.editor.clearLayer();
         // 詳細表示している範囲を囲む
@@ -211,9 +301,38 @@ export class CHR {
             }
         }
 
+        this.drawCursor(0, 0);
+
+    }
+
+    drawCursor(x, y) {
         // 一番上にカーソル表示
-        this.editor.strokeLayerRect(0, 0, EDITOR_PX, EDITOR_PX);
-        this.editor.fillLayerRect(0, 0, EDITOR_PX, EDITOR_PX, 'rgba( 255, 0, 0, 0.5)');
+        this.editor.drawCursor(x, y);
+    }
+
+    changeDot(x, y, index) {
+        // 対象チップを判定
+        let chipNunber = 0;
+        if (x < 8) {
+            if (y < 8) {
+                chipNunber = 0;
+            } else {
+                chipNunber = 2;
+            }
+        } else {
+            if (y < 8) {
+                chipNunber = 1;
+            } else {
+                chipNunber = 3;
+            }
+        }
+        const col = x % 8;
+        const row = y % 8;
+        console.log(chipNunber, row, col);
+        this.editorChips[chipNunber].rows[row][col] = index;
+        
+        //this.editorChips
+        this.drawPreview();
     }
 
 
@@ -331,12 +450,14 @@ export class CHR {
 
 
 /*
-エディターのカーソルで対象ドットを移動
-ドットが打てるように
-ドットの座標情報を表示(メモリマップ的な)
+>マウスクリックで対象ドットを選択
+>エディターのカーソルで対象ドットを移動
+>ドットが打てるように
 パレット指定機能追加
 パレットの保存機能
+--ここまで一旦作ってみて構造化
 
+ドットの座標情報を表示(メモリマップ的な)
 表示モード変更 通常か横並び4チップを2x2で表示
 */
 

@@ -19,10 +19,10 @@
 }
 </style>
 </head>
-<body>
+<body style="min-width: 1590px;">
     <nav>
-        <button id="open">ファイルを開く</button>
-        <button id="save">保存</button>
+        <button id="open">ファイルを開く(O)</button>
+        <button id="save">保存(S)</button>
 
         <button id="open_palette">パレットを開く</button>
         <button id="save_palette">パレットを保存</button>
@@ -38,6 +38,7 @@
                 <div class="canvas-wrapper" style="padding-left: 20px;">
                     <canvas id="editor" width="512" height="512"></canvas>
                     <canvas id="editorLayer" width="512" height="512"></canvas>
+                    <canvas id="editorCursor" width="512" height="512"></canvas>
                 </div>
             </div>
             <div class="two-third">
@@ -56,7 +57,7 @@ import { CHR } from './chr.js';
 $(() => {
 
     // 解析クラス初期化
-    const chr = new CHR(editor, editorLayer, preview, previewLayer);
+    const chr = new CHR(editor, editorLayer, editorCursor, preview, previewLayer);
 
     $('#file').on('change', function(event) {
         const reader = new FileReader();
@@ -96,6 +97,23 @@ $(() => {
     $('#open').on('click', function() {
         $('#file').click();
     })
+
+    // 
+    window.addEventListener('keydown', (event) => {
+        if (!event.ctrlKey) {
+            return;
+        }
+        switch(event.key) {
+            case 'o':
+                $('#file').click();
+                event.preventDefault();
+            break;
+            case 's':
+                $('#save').click();
+                event.preventDefault();
+            break;
+        }
+    });
 
 });
 </script>
