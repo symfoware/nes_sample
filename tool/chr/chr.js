@@ -65,15 +65,36 @@ class Chip {
     }
 }
 
+export const Palette = [
+    '#808080', '#003DA6', '#0012B0', '#440096', '#A1005E',
+    '#C70028', '#BA0600', '#8C1700', '#5C2F00', '#104500',
+    '#054A00', '#00472E', '#004166', '#000000', '#050505',
+    '#050505', '#C7C7C7', '#0077FF', '#2155FF', '#8237FA',
+    '#EB2FB5', '#FF2950', '#FF2200', '#D63200', '#C46200',
+    '#358000', '#058F00', '#008A55', '#0099CC', '#212121',
+    '#090909', '#090909', '#FFFFFF', '#0FD7FF', '#69A2FF',
+    '#D480FF', '#FF45F3', '#FF618B', '#FF8833', '#FF9C12',
+    '#FABC20', '#9FE30E', '#2BF035', '#0CF0A4', '#05FBFF',
+    '#5E5E5E', '#0D0D0D', '#0D0D0D', '#FFFFFF', '#A6FCFF',
+    '#B3ECFF', '#DAABEB', '#FFA8F9', '#FFABB3', '#FFD2B0',
+    '#FFEFA6', '#FFF79C', '#D7E895', '#A6EDAF', '#A2F2DA',
+    '#99FFFC', '#DDDDDD', '#111111', '#111111'
+];
+
 // イベント処理
 class EventListener {
     constructor(owner) {
         this.owner = owner;
         this.cursorX = 0;
         this.cursorY = 0;
+        this.gridX = 0;
+        this.gridY = 0;
     }
 
     clickEditor(event) {
+        if (!this.owner.chips.length) {
+            return;
+        }
         // dot単位で移動させる
         this.cursorX = Math.trunc(event.offsetX / EDITOR_PX);
         this.cursorY = Math.trunc(event.offsetY / EDITOR_PX);
@@ -82,16 +103,23 @@ class EventListener {
     }
 
     clickPreview(event) {
-        // chip単位で移動させる
-        const x = Math.trunc(event.offsetX / PREVIEW_GRID);
-        const y = Math.trunc(event.offsetY / PREVIEW_GRID);
+        if (!this.owner.chips.length) {
+            return;
+        }
 
+        // chip単位で移動させる
+        this.gridX = Math.trunc(event.offsetX / PREVIEW_GRID);
+        this.gridY = Math.trunc(event.offsetY / PREVIEW_GRID);
         // プレビューのグリッド表示位置を更新
-        this.owner.drawPreviewGrid(x, y);        
+        this.owner.drawPreviewGrid(this.gridX, this.gridY);
         
     }
 
     keydown(event) {
+        if (!this.owner.chips.length) {
+            return;
+        }
+
         let moveCursor = false;
         let changeDot = -1;
         switch(event.key){
@@ -226,12 +254,13 @@ export class CHR {
         this.viewPage = 0; // 0 ~ 4
         this.maxPage = 0;
 
-        const listener = new EventListener(this);
+        this.listener = new EventListener(this);
         // クリックイベント設定
-        editorCursor.addEventListener('click', (event) => { listener.clickEditor(event) });
-        previewLayer.addEventListener('click', (event) => { listener.clickPreview(event) });
+        editorCursor.addEventListener('click', (event) => { this.listener.clickEditor(event) });
+        previewLayer.addEventListener('click', (event) => { this.listener.clickPreview(event) });
 
-        window.addEventListener('keydown', (event) => { listener.keydown(event); });
+        window.addEventListener('keydown', (event) => { this.listener.keydown(event); });
+
     }
 
     // chr形式のデータをロード
@@ -255,8 +284,8 @@ export class CHR {
         //console.log(this.chips.length / 16 * 8 * 8);
 
         this.drawPreview();
-
         this.drawEditorGrid()
+
     }
 
     // ----------------------------------------------------------------------
@@ -353,7 +382,7 @@ export class CHR {
             }
         }
 
-        this.drawPreviewGrid(0, 0, withEditor);
+        this.drawPreviewGrid(this.listener.gridX, this.listener.gridY, withEditor);
     }
 
     drawPreviewGrid(x, y, withEditor=true) {
@@ -371,7 +400,7 @@ export class CHR {
         this.preview.strokeLayerRect(PREVIEW_GRID * x, PREVIEW_GRID * y, PREVIEW_PX * 8 * 2, PREVIEW_PX * 8 * 2);
 
         if (!withEditor) {
-            return;
+            //return;
         }
 
         // 同時にエディターも更新
@@ -390,13 +419,13 @@ export class CHR {
                 // 色はchipのカラーパレットから取るように
                 switch(p) {
                     case 1:
-                        style = 'rgb( 255, 0, 0)';
+                        style = Palette[0x10];
                     break;
                     case 2:
-                        style = 'rgb( 0, 255, 0)';
+                        style = Palette[0x11];
                     break;
                     case 3:
-                        style = 'rgb( 0, 0, 255)';
+                        style = Palette[0x12];
                     break;
                 }
 
@@ -450,9 +479,6 @@ export class CHR {
 
 
 /*
->マウスクリックで対象ドットを選択
->エディターのカーソルで対象ドットを移動
->ドットが打てるように
 パレット指定機能追加
 パレットの保存機能
 --ここまで一旦作ってみて構造化
