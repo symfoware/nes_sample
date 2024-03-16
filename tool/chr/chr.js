@@ -26,7 +26,7 @@ class Chip {
 
             // ビットを足す
             for (let i = 0; i < 8; i++) {
-                let value = (1 & upper) << 1 | (1 & lower);
+                let value = (1 & upper) | (1 & lower) << 1;
                 upper = upper >> 1;
                 lower = lower >> 1;
                 // 計算結果を先頭に追加
@@ -54,8 +54,8 @@ class Chip {
                 upper = upper << 1;
                 lower = lower << 1;
 
-                upper += (value & 2) >> 1;
-                lower += value & 1;
+                upper += value & 1;
+                lower += (value & 1) >> 1;
             }
             view[r] = upper;
             view[r + 8] = lower;
