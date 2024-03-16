@@ -55,7 +55,7 @@ class Chip {
                 lower = lower << 1;
 
                 upper += value & 1;
-                lower += (value & 1) >> 1;
+                lower += (value & 2) >> 1;
             }
             view[r] = upper;
             view[r + 8] = lower;
