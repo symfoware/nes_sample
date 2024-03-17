@@ -67,16 +67,22 @@ copypal:
     sta v_sprite_x
 
     ldy #$3f ; スプライトは64個 未使用のスプライト63個の座標を移動して隠す
-spriteout:
-    lda #$ff
-    sta $2004 ; Y座標を画面外に
+spritehide:
     lda #$00
-    sta $2004 ; タイルのインデックス
-    sta $2004 ; スプライト属性
-    lda #$ff
-    sta $2004 ; X座標を画面外に
+    sta $2004 ; Y座標0
+    sta $2004 ; タイルのインデックス0
+    ; スプライト属性指定
+    ; bit7:垂直反転(１で反転)
+    ; bit6:水平反転(１で反転)
+    ; bit5:BGとの優先順位(0:手前、1:奥)
+    ; bit4-2 未使用?
+    ; bit0-1:パレットの上位2bit
+    lda #%00100000
+    sta $2004 ; スプライト属性 BGの後ろを指定
+    lda #$00
+    sta $2004 ; X座標0
     dey
-    bne spriteout
+    bne spritehide
 
 
 
