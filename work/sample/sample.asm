@@ -75,86 +75,97 @@ mainloop:
 
 ; 関数定義テスト
 drawchip:
-	; map1
+	; 間接アドレスのテスト
+	; テーブルの上位アドレス
+	lda #>map1
+	sta v_map_high
+	; テーブルの下位アドレス
+	lda #<map1
+	sta v_map_low
+	; map1の書き込み開始位置を設定
 	lda	#$20
-	sta	$2006
+	sta v_start_high
 	lda	#$00
-	sta	$2006
-	
-	ldx #$00 ; xを0
-	ldy	#$c0 ; ループ回数
-copymap1:
-	lda	map1, x
-	sta	$2007
+	sta v_start_low
+	; map1書き込み実行
+	jsr copymap
 
-	inx
-	dey
-	bne	copymap1
-
-	; map2
+	; map2テーブルの上位アドレス
+	lda #>map2
+	sta v_map_high
+	; テーブルの下位アドレス
+	lda #<map2
+	sta v_map_low
+	; map2の書き込み開始位置を設定
 	lda	#$20
-	sta	$2006
+	sta v_start_high
 	lda	#$c0
-	sta	$2006
-	
-	ldx #$00 ; xを0
-	ldy	#$c0 ; ループ回数
-copymap2:
-	lda	map2, x
-	sta	$2007
+	sta v_start_low
+	; map2書き込み実行
+	jsr copymap
 
-	inx
-	dey
-	bne	copymap2
-
-	; map3
+	; map3テーブルの上位アドレス
+	lda #>map3
+	sta v_map_high
+	; テーブルの下位アドレス
+	lda #<map3
+	sta v_map_low
+	; map3の書き込み開始位置を設定
 	lda	#$21
-	sta	$2006
+	sta v_start_high
 	lda	#$80
-	sta	$2006
-	
-	ldx #$00 ; xを0
-	ldy	#$c0 ; ループ回数
-copymap3:
-	lda	map3, x
-	sta	$2007
+	sta v_start_low
+	; map3書き込み実行
+	jsr copymap
 
-	inx
-	dey
-	bne	copymap3
-
-	; map4
+	; map4テーブルの上位アドレス
+	lda #>map4
+	sta v_map_high
+	; テーブルの下位アドレス
+	lda #<map4
+	sta v_map_low
+	; map4の書き込み開始位置を設定
 	lda	#$22
-	sta	$2006
+	sta v_start_high
 	lda	#$40
-	sta	$2006
-	
-	ldx #$00 ; xを0
-	ldy	#$c0 ; ループ回数
-copymap4:
-	lda	map4, x
-	sta	$2007
+	sta v_start_low
+	; map4書き込み実行
+	jsr copymap
 
-	inx
-	dey
-	bne	copymap4
-
-	; map5
+	; map5テーブルの上位アドレス
+	lda #>map5
+	sta v_map_high
+	; テーブルの下位アドレス
+	lda #<map5
+	sta v_map_low
+	; map5の書き込み開始位置を設定
 	lda	#$23
-	sta	$2006
+	sta v_start_high
 	lda	#$00
+	sta v_start_low
+	; map5書き込み実行
+	jsr copymap
+
+	rts
+
+
+copymap:
+	ldx #$c0 ; ループ回数
+	ldy	#$00 ; yを0
+
+	; 書き込み開始位置をロード
+	lda	v_start_high
 	sta	$2006
-	
-	ldx #$00 ; xを0
-	ldy	#$c0 ; ループ回数
-copymap5:
-	lda	map5, x
+	lda	v_start_low
+	sta	$2006
+
+copymaploop:
+	; mapの先頭アドレスにyを加えたアドレスの値をロード
+	lda	(v_map_low), y
 	sta	$2007
-
-	inx
-	dey
-	bne	copymap5
-
+	iny
+	dex
+	bne	copymaploop
 	rts
 
 .endproc
@@ -168,7 +179,7 @@ palettes:
 
 map1:
 	.byte	$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01
-	.byte	$01,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01
+	.byte	$01,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$01
 	.byte	$01,$00,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01
 	.byte	$01,$00,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01
 	.byte	$01,$00,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01
@@ -209,8 +220,10 @@ map5:
 
 ; 変数定義方法
 .org $0000
-v_map:	.byte	$00
-
+v_map_low:	.byte	$00
+v_map_high:	.byte	$00
+v_start_low:	.byte	$00
+v_start_high:	.byte	$00
 .segment "VECINFO"
 	.word	$0000
 	.word	Reset
