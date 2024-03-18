@@ -66,19 +66,14 @@ class Chip {
 }
 
 export const Palette = [
-    '#808080', '#003DA6', '#0012B0', '#440096', '#A1005E',
-    '#C70028', '#BA0600', '#8C1700', '#5C2F00', '#104500',
-    '#054A00', '#00472E', '#004166', '#000000', '#050505',
-    '#050505', '#C7C7C7', '#0077FF', '#2155FF', '#8237FA',
-    '#EB2FB5', '#FF2950', '#FF2200', '#D63200', '#C46200',
-    '#358000', '#058F00', '#008A55', '#0099CC', '#212121',
-    '#090909', '#090909', '#FFFFFF', '#0FD7FF', '#69A2FF',
-    '#D480FF', '#FF45F3', '#FF618B', '#FF8833', '#FF9C12',
-    '#FABC20', '#9FE30E', '#2BF035', '#0CF0A4', '#05FBFF',
-    '#5E5E5E', '#0D0D0D', '#0D0D0D', '#FFFFFF', '#A6FCFF',
-    '#B3ECFF', '#DAABEB', '#FFA8F9', '#FFABB3', '#FFD2B0',
-    '#FFEFA6', '#FFF79C', '#D7E895', '#A6EDAF', '#A2F2DA',
-    '#99FFFC', '#DDDDDD', '#111111', '#111111'
+    '#808080', '#003DA6', '#0012B0', '#440096', '#A1005E', '#C70028', '#BA0600', '#8C1700', // $00
+    '#5C2F00', '#104500', '#054A00', '#00472E', '#004166', '#000000', '#050505', '#050505',
+    '#C7C7C7', '#0077FF', '#2155FF', '#8237FA', '#EB2FB5', '#FF2950', '#FF2200', '#D63200', // $10
+    '#C46200', '#358000', '#058F00', '#008A55', '#0099CC', '#212121', '#090909', '#090909',
+    '#FFFFFF', '#0FD7FF', '#69A2FF', '#D480FF', '#FF45F3', '#FF618B', '#FF8833', '#FF9C12', // $20
+    '#FABC20', '#9FE30E', '#2BF035', '#0CF0A4', '#05FBFF', '#5E5E5E', '#0D0D0D', '#0D0D0D',
+    '#FFFFFF', '#A6FCFF', '#B3ECFF', '#DAABEB', '#FFA8F9', '#FFABB3', '#FFD2B0', '#FFEFA6', // $30
+    '#FFF79C', '#D7E895', '#A6EDAF', '#A2F2DA', '#99FFFC', '#DDDDDD', '#111111', '#111111'
 ];
 
 // イベント処理
@@ -254,6 +249,12 @@ export class CHR {
         this.viewPage = 0; // 0 ~ 4
         this.maxPage = 0;
 
+        // パレット設定
+        this.palette = {
+            bg: [ 0x0f, 0x08, 0x18, 0x39],
+            sp: [ 0x0f, 0x08, 0x18, 0x39],
+        };
+
         this.listener = new EventListener(this);
         // クリックイベント設定
         editorCursor.addEventListener('click', (event) => { this.listener.clickEditor(event) });
@@ -410,29 +411,20 @@ export class CHR {
     drawChip(chip, x, y, px, chrCanvas) {
         const shiftX = (px * x * 8);
         const shiftY = (px * y * 8);
+        let type = 'bg';
+        if (this.viewPage !== 0) {
+            type = 'sp';
+        }
         
         for (let r = 0; r < 8; r++){
             const row = chip.rows[r];
             for (let c = 0; c < 8; c++) {
                 const p = row[c];
-                let style = null;
-                // 色はchipのカラーパレットから取るように
-                switch(p) {
-                    case 1:
-                        style = Palette[0x10];
-                    break;
-                    case 2:
-                        style = Palette[0x11];
-                    break;
-                    case 3:
-                        style = Palette[0x12];
-                    break;
-                }
-
-                if (!style) {
+                if (p === 0) {
                     continue;
                 }
 
+                const style = Palette[this.palette[type][p]];
                 chrCanvas.drawPixel(px * c + shiftX, px * r + shiftY, px, style);
             }
         }
@@ -475,6 +467,22 @@ export class CHR {
     hasNext() {
         return !(this.maxPage <= this.viewPage);
     }
+
+    // ----------------------------------------------------------------------
+    // パレットデータ操作
+    getPallete(type, index) {
+        const colorIndex = this.palette[type][index];
+        return [colorIndex, Palette[colorIndex]];
+    }
+
+    setPallete(type, index, colorIndex) {
+        this.palette[type][index] = colorIndex;
+        if (!this.chips.length) {
+            return;
+        }
+        this.drawPreview();
+    }
+
 }
 
 
@@ -486,6 +494,6 @@ export class CHR {
 ドットの座標情報を表示(メモリマップ的な)
 表示モード変更 通常か横並び4チップを2x2で表示
 ファイルのドロップで開けるように
-
+矢印で移動したときわからなくなるので、ページ番号を表示する
 */
 

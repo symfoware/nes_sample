@@ -17,6 +17,31 @@
     top: 0;
     left: 0;
 }
+.center {
+    text-align: center;
+}
+.hex {
+    color: black;
+    background-color: white;
+    padding: 0 4px;
+}
+.box-default {
+    color: white;
+    background-color: #050505;
+    cursor: default;
+}
+.box {
+    color: white;
+    cursor:pointer;
+}
+.box-pallete {
+    height: 40px;
+    border: 1px solid;
+    text-align: center;
+    line-height: 40px;
+    border-color: black; 
+    cursor:pointer;
+}
 </style>
 </head>
 <body style="min-width: 1590px;">
@@ -40,12 +65,33 @@
                     <canvas id="editorLayer" width="512" height="512"></canvas>
                     <canvas id="editorCursor" width="512" height="512"></canvas>
                 </div>
-                <div>
-                    <label for="palette_modal" class="button">パレットを追加</label>
-                </div>
-                <ol id="pallete_list">
-                </ol>
-                
+                <article class="card">
+                    <header>
+                        <h3>パレット</h3>
+                    </header>
+                    <footer>
+                        <div class="flex five">
+                            <div></div>
+                            <div class="center">0</div>
+                            <div class="center">1</div>
+                            <div class="center">2</div>
+                            <div class="center">3</div>
+
+                            <div>BG</div>
+                            <div><div class="center box-default"><span class="hex">$0f</span></div></div>
+                            <div><div class="center box" id="bg1"><span class="hex"></span></div></div>
+                            <div><div class="center box" id="bg2"><span class="hex"></span></div></div>
+                            <div><div class="center box" id="bg3"><span class="hex"></span></div></div>
+
+                            <div>スプライト</div>
+                            <div><div class="center box-default"><span class="hex">$0f</span></div></div>
+                            <div><div class="center box" id="sp1"><span class="hex">$08</span></div></div>
+                            <div><div class="center box" id="sp2"><span class="hex">$18</span></div></div>
+                            <div><div class="center box" id="sp3"><span class="hex">$39</span></div></div>
+                        </div>
+                        
+                    </footer>
+                </article>
             </div>
             <div class="two-third">
                 <div class="canvas-wrapper">
@@ -63,83 +109,17 @@
         <label for="palette_modal" class="overlay"></label>
         <article>
             <header>
-                <h3>モーダルのタイトル</h3>
+                <h3>パレットカラー選択</h3>
                 <label for="palette_modal" class="close">×</label>
             </header>
-            <section class="content" style="width: 540px;">
-                <div style="display: grid;  grid-template-columns: repeat(16, 30px); column-gap: 2px; row-gap: 2px;" id="pallete">
-                </div>
-                <div class="flex" style="padding-top: 20px;">
-                    <div class="third">
-                        <div>1:
-                            <select style="width: 80px;" id="p1">
-                                <option>00</option><option>01</option><option>02</option><option>03</option>
-                                <option>04</option><option>05</option><option>06</option><option>07</option>
-                                <option>08</option><option>09</option><option>0a</option><option>0b</option>
-                                <option>0c</option><option>0d</option><option>0e</option><option>0f</option>
-                                <option>00</option><option>11</option><option>12</option><option>13</option>
-                                <option>14</option><option>15</option><option>16</option><option>17</option>
-                                <option>18</option><option>19</option><option>1a</option><option>1b</option>
-                                <option>1c</option><option>1d</option><option>1e</option><option>1f</option>
-                                <option>20</option><option>21</option><option>22</option><option>23</option>
-                                <option>24</option><option>25</option><option>26</option><option>27</option>
-                                <option>28</option><option>29</option><option>2a</option><option>2b</option>
-                                <option>2c</option><option>2d</option><option>2e</option><option>2f</option>
-                                <option>30</option><option>31</option><option>32</option><option>33</option>
-                                <option>34</option><option>35</option><option>36</option><option>37</option>
-                                <option>38</option><option>39</option><option>3a</option><option>3b</option>
-                                <option>3c</option><option>3d</option><option>3e</option><option>3f</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="third">
-                        <div>2:
-                            <select style="width: 80px;" id="p2">
-                                <option>00</option><option>01</option><option>02</option><option>03</option>
-                                <option>04</option><option>05</option><option>06</option><option>07</option>
-                                <option>08</option><option>09</option><option>0a</option><option>0b</option>
-                                <option>0c</option><option>0d</option><option>0e</option><option>0f</option>
-                                <option>00</option><option>11</option><option>12</option><option>13</option>
-                                <option>14</option><option>15</option><option>16</option><option>17</option>
-                                <option>18</option><option>19</option><option>1a</option><option>1b</option>
-                                <option>1c</option><option>1d</option><option>1e</option><option>1f</option>
-                                <option>20</option><option>21</option><option>22</option><option>23</option>
-                                <option>24</option><option>25</option><option>26</option><option>27</option>
-                                <option>28</option><option>29</option><option>2a</option><option>2b</option>
-                                <option>2c</option><option>2d</option><option>2e</option><option>2f</option>
-                                <option>30</option><option>31</option><option>32</option><option>33</option>
-                                <option>34</option><option>35</option><option>36</option><option>37</option>
-                                <option>38</option><option>39</option><option>3a</option><option>3b</option>
-                                <option>3c</option><option>3d</option><option>3e</option><option>3f</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="third">
-                        <div>3:
-                            <select style="width: 80px;" id="p3">
-                                <option>00</option><option>01</option><option>02</option><option>03</option>
-                                <option>04</option><option>05</option><option>06</option><option>07</option>
-                                <option>08</option><option>09</option><option>0a</option><option>0b</option>
-                                <option>0c</option><option>0d</option><option>0e</option><option>0f</option>
-                                <option>00</option><option>11</option><option>12</option><option>13</option>
-                                <option>14</option><option>15</option><option>16</option><option>17</option>
-                                <option>18</option><option>19</option><option>1a</option><option>1b</option>
-                                <option>1c</option><option>1d</option><option>1e</option><option>1f</option>
-                                <option>20</option><option>21</option><option>22</option><option>23</option>
-                                <option>24</option><option>25</option><option>26</option><option>27</option>
-                                <option>28</option><option>29</option><option>2a</option><option>2b</option>
-                                <option>2c</option><option>2d</option><option>2e</option><option>2f</option>
-                                <option>30</option><option>31</option><option>32</option><option>33</option>
-                                <option>34</option><option>35</option><option>36</option><option>37</option>
-                                <option>38</option><option>39</option><option>3a</option><option>3b</option>
-                                <option>3c</option><option>3d</option><option>3e</option><option>3f</option>
-                            </select>
-                        </div>
-                    </div>
+            <section class="content" style="width: 700px;">
+                <div style="display: grid;  grid-template-columns: repeat(16, 40px); column-gap: 2px; row-gap: 2px;" id="pallete">
                 </div>
             </section>
             <footer>
-                <button id="modal_ok">OK</button>
+                <label>
+                    バレットに指定する色をクリック
+                </label>
                 <label for="palette_modal" class="button dangerous">
                     キャンセル
                 </label>
@@ -150,6 +130,8 @@
 import { CHR, Palette } from './chr.js';
 $(() => {
 
+    // パレット変更の際、クリックしたdivr
+    let clickedChip = null;
     // 解析クラス初期化
     const chr = new CHR(editor, editorLayer, editorCursor, preview, previewLayer);
 
@@ -190,56 +172,19 @@ $(() => {
     $('#open').on('click', function() {
         $('#file').click();
     });
-    $('#modal_ok').on('click', function() {
-        $('#palette_modal').prop('checked', false);
-        const hex1 = $('#p1').val();
-        const hex2 = $('#p2').val();
-        const hex3 = $('#p3').val();
-        const color1 = Palette[parseInt(`0x${hex1}`, 16)];
-        const color2 = Palette[parseInt(`0x${hex2}`, 16)];
-        const color3 = Palette[parseInt(`0x${hex3}`, 16)];
-        
-        $('#pallete_list').append(
-        `<li class="flex six" style="border: 1px solid">
-            <div class="sixth" style="display: flex; align-items: center;width: 20px;">
-                1
-            </div>
-            <div class="sixth" style="display: flex; align-items: center">
-                <div style="width:30px;height:30px;background-color: ${color1};margin-left: 20px;">${hex1}</div>
-            </div>
-            <div class="sixth" style="display: flex; align-items: center">
-                <div style="width:30px;height:30px;background-color: ${color2};margin-left: 20px;">${hex2}</div>
-            </div>
-            <div class="sixth" style="display: flex; align-items: center">
-                <div style="width:30px;height:30px;background-color: ${color3};margin-left: 20px;">${hex3}</div>
-            </div>
-            <div class="third" style="display: flex; align-items: center">
-                <button class="pallete_edit">編集</button>
-                <button class="pallete_del" style="margin-left:10px">削除</button>
-            </div>
-        </li>`);
-    });
-
-    $(document).on('click', '.pallete_edit', function() {
+    
+    // 画面上のパレットカラー選択
+    $('.box').on('click', function() {
+        clickedChip = $(this).attr('id');
         $('#palette_modal').prop('checked', true);
     });
-    $(document).on('click', '.pallete_del', function() {
-        $(this).closest('li').remove();
-    });
-
-    // パレット色追加
-    Palette.forEach((color, i) => {
-        const hex = ('0'+i.toString(16)).slice(-2);
-        const rgb = color.slice(1);
-        const total = parseInt(rgb.slice(0, 2), 16) + parseInt(rgb.slice(2, 4), 16) + parseInt(rgb.slice(4, 6), 16);
-        let fontColor = 'black';
-        if (total < 500) {
-            fontColor = 'white';
-        }
-        $('#pallete').append(
-            `<div style="height: 30px;border: 1px solid;text-align: center;border-color: black; background-color: ${color}; color:${fontColor}">${hex}</div>`
-        );
+    // パレットから色選択時のイベント
+    $(document).on('click', '.box-pallete', function() {
+        const color = parseInt('0x'+$(this).text(), 16);
+        chr.setPallete(clickedChip.slice(0,2), clickedChip.slice(2), color);
         
+        setColor(clickedChip);
+        $('#palette_modal').prop('checked', false);
     });
 
     // キーボード操作追加
@@ -258,6 +203,35 @@ $(() => {
             break;
         }
     });
+
+    const toHex = function(val) {
+        return ('0' + val.toString(16)).slice(-2);
+    }
+
+    const setColor = function(id) {
+        const [index, color] = chr.getPallete(id.slice(0,2), id.slice(2));
+        $(`#${id}`).css('background-color', color).children('span').text('$'+toHex(index));
+    }
+
+    // パレット色追加
+    Palette.forEach((color, i) => {
+        const hex = toHex(i);
+        const rgb = color.slice(1);
+        const total = parseInt(rgb.slice(0, 2), 16) + parseInt(rgb.slice(2, 4), 16) + parseInt(rgb.slice(4, 6), 16);
+        let fontColor = 'black';
+        if (total < 500) {
+            fontColor = 'white';
+        }
+        $('#pallete').append(
+            `<div class="box-pallete" style="background-color: ${color}; color:${fontColor}">${hex}</div>`
+        );
+        
+    });
+    // デフォルトのパレット色設定
+    for (const id of ['bg1', 'bg2', 'bg3', 'sp1', 'sp2', 'sp3']) {
+        setColor(id);
+    }
+
 
 });
 </script>
