@@ -371,6 +371,10 @@ export class CHR {
 
     // 1画面分のデータを表示
     drawPreview(withEditor=true) {
+        if (!this.chips.length) {
+            return;
+        }
+
         // 背景を黒でクリア
         this.preview.clearMain();
 
@@ -477,9 +481,6 @@ export class CHR {
 
     setPallete(type, index, colorIndex) {
         this.palette[type][index] = colorIndex;
-        if (!this.chips.length) {
-            return;
-        }
         this.drawPreview();
     }
 
@@ -487,13 +488,11 @@ export class CHR {
 
 
 /*
-パレット指定機能追加
-パレットの保存機能
---ここまで一旦作ってみて構造化
+ファイルのドロップで開けるように
+矢印で移動したときわからなくなるので、ページ番号を表示する
 
 ドットの座標情報を表示(メモリマップ的な)
 表示モード変更 通常か横並び4チップを2x2で表示
-ファイルのドロップで開けるように
-矢印で移動したときわからなくなるので、ページ番号を表示する
+--ここまで一旦作ってみて構造化
 */
 

@@ -131,59 +131,71 @@ import { CHR, Palette } from './chr.js';
 $(() => {
 
     // パレット変更の際、クリックしたdivr
-    let clickedChip = null;
+    let clickedBoxId = null;
     // 解析クラス初期化
     const chr = new CHR(editor, editorLayer, editorCursor, preview, previewLayer);
 
     $('#file').on('change', function(event) {
+        const ext = $(this).attr('accept');
         const reader = new FileReader();
         // 読み込みが完了したら、結果を表示
         reader.onload = function (event) {
-            //loadCHR(event.target.result);
-            chr.load(event.target.result);
+            // chr読み込み
+            if (ext === '.chr') {
+                chr.load(event.target.result);
+            
+            // パレットデータ読み込み
+            } else {
+                const enc = new TextDecoder('utf-8');
+                const jsonText = enc.decode(new Uint8Array(event.target.result));
+                chr.palette = JSON.parse(jsonText);
+                chr.drawPreview();
+                loadPallete();
+            }
         };
         // ファイルをテキストとして読み込む
         reader.readAsArrayBuffer(event.target.files[0]);
     });
 
+    // chrファイル保存
     $('#save').on('click', function() {
-        // aタグの生成
-        const a = document.createElement('a');
-        // レスポンスからBlobオブジェクト＆URLの生成
-        const blobUrl = window.URL.createObjectURL(new Blob([chr.toArray()], {
-            type: chr.type
-        }));
-        document.body.appendChild(a);
-        a.style = 'display: none';
-        // 生成したURLをセット
-        a.href = blobUrl;
-        // ダウンロードの時にファイル名として表示される
-        a.download = 'downlad.chr';
-        // クリックイベント発火
-        a.click();
+        download('downlad.chr', new Blob([chr.toArray()]));
+    });
+    // chrファイル読み込み
+    $('#open').on('click', function() {
+        $('#file').attr('accept', '.chr').click();
     });
 
+    // パレットファイル読み込み
+    $('#open_palette').on('click', function() {
+        $('#file').attr('accept', '.json').click();
+    });
+    // パレットファイル保存
+    $('#save_palette').on('click', function() {
+        const palette = JSON.stringify(chr.palette);
+        download('palette.json', new Blob([palette]));
+    });
+
+    // 前へ
     $('#prev').on('click', function() {
         chr.prev();
     });
+    // 次へ
     $('#next').on('click', function() {
         chr.next();
-    });
-    $('#open').on('click', function() {
-        $('#file').click();
     });
     
     // 画面上のパレットカラー選択
     $('.box').on('click', function() {
-        clickedChip = $(this).attr('id');
+        clickedBoxId = $(this).attr('id');
         $('#palette_modal').prop('checked', true);
     });
     // パレットから色選択時のイベント
     $(document).on('click', '.box-pallete', function() {
         const color = parseInt('0x'+$(this).text(), 16);
-        chr.setPallete(clickedChip.slice(0,2), clickedChip.slice(2), color);
+        chr.setPallete(clickedBoxId.slice(0,2), clickedBoxId.slice(2), color);
         
-        setColor(clickedChip);
+        setColor(clickedBoxId);
         $('#palette_modal').prop('checked', false);
     });
 
@@ -204,13 +216,36 @@ $(() => {
         }
     });
 
-    const toHex = function(val) {
-        return ('0' + val.toString(16)).slice(-2);
-    }
+    // ファイルのダウンロード
+    const download = (file, blob) => {
+        // aタグの生成
+        const a = document.createElement('a');
+        // レスポンスからBlobオブジェクト＆URLの生成
+        const blobUrl = window.URL.createObjectURL(blob);
+        document.body.appendChild(a);
+        a.style = 'display: none';
+        // 生成したURLをセット
+        a.href = blobUrl;
+        // ダウンロードの時にファイル名として表示される
+        a.download = file;
+        // クリックイベント発火
+        a.click();
+    };
 
-    const setColor = function(id) {
+    const toHex = (val) => {
+        return ('0' + val.toString(16)).slice(-2);
+    };
+
+    const setColor = (id) => {
         const [index, color] = chr.getPallete(id.slice(0,2), id.slice(2));
         $(`#${id}`).css('background-color', color).children('span').text('$'+toHex(index));
+    };
+
+    // パレットデータの読みこみ
+    const loadPallete = () => {
+        for (const id of ['bg1', 'bg2', 'bg3', 'sp1', 'sp2', 'sp3']) {
+            setColor(id);
+        }
     }
 
     // パレット色追加
@@ -227,11 +262,9 @@ $(() => {
         );
         
     });
-    // デフォルトのパレット色設定
-    for (const id of ['bg1', 'bg2', 'bg3', 'sp1', 'sp2', 'sp3']) {
-        setColor(id);
-    }
 
+    // 初期パレットロード
+    loadPallete();
 
 });
 </script>
