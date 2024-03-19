@@ -12,8 +12,9 @@ const EDITOR_PX = 32;
 // チップ単位でのエンコード、デコード
 class Chip {
 
-    constructor() {
+    constructor(index) {
         this.rows = [];
+        this.index = index;
     }
 
     load(view, index) {
@@ -262,6 +263,9 @@ export class CHR {
 
         window.addEventListener('keydown', (event) => { this.listener.keydown(event); });
 
+        this.editor.clearMain();
+        this.preview.clearMain();
+
     }
 
     // chr形式のデータをロード
@@ -274,7 +278,7 @@ export class CHR {
 
         // 画像情報をデコード
         while (index + 16 <= view.length) {
-            const chip = new Chip();
+            const chip = new Chip(this.chips.length);
             this.chips.push(chip.load(view, index));
             // 16バイト分インデックスを進める
             index += 16;
@@ -308,6 +312,11 @@ export class CHR {
                 this.editorChips.push(chip);
             }
         }
+
+        // カーソルのあるチップのアドレス表示
+        if(this.onChangeViewCallback) {
+            this.onChangeViewCallback();
+        }
     }
 
     drawEditorGrid() {
@@ -338,6 +347,11 @@ export class CHR {
     drawCursor(x, y) {
         // 一番上にカーソル表示
         this.editor.drawCursor(x, y);
+
+        // カーソルのあるチップのアドレス表示
+        if(this.onChangeViewCallback) {
+            this.onChangeViewCallback();
+        }
     }
 
     changeDot(x, y, index) {
@@ -484,15 +498,53 @@ export class CHR {
         this.drawPreview();
     }
 
+
+    // ----------------------------------------------------------------------
+    // チップ情報取得
+    getCurrentInfo() {
+        if (!this.chips.length) {
+            return '';
+        }
+
+        // 対象チップを判定
+        const x = this.listener.cursorX;
+        const y = this.listener.cursorY;
+        let chipNunber = 0;
+        if (x < 8) {
+            if (y < 8) {
+                chipNunber = 0;
+            } else {
+                chipNunber = 2;
+            }
+        } else {
+            if (y < 8) {
+                chipNunber = 1;
+            } else {
+                chipNunber = 3;
+            }
+        }
+
+        // カーソルのあるチップのインデックスを16進数表記でリターン
+        const index = this.editorChips[chipNunber].index;
+        return '$' + ('000' + index.toString(16)).slice(-4);
+    }
+
+    // ----------------------------------------------------------------------
+    // イベント設定
+    onChangeView(callback) {
+        this.onChangeViewCallback = callback;
+    }
+
 }
 
 
 /*
-ファイルのドロップで開けるように
-矢印で移動したときわからなくなるので、ページ番号を表示する
-
-ドットの座標情報を表示(メモリマップ的な)
-表示モード変更 通常か横並び4チップを2x2で表示
+> ファイルのドロップで開けるように
+>カーソル位置のチップの座標情報を表示(メモリマップ的な)
+編集モード変更 通常か横並び4チップを2x2で表示
 --ここまで一旦作ってみて構造化
+
+・あったら良いかも
+完全新規作成
 */
 

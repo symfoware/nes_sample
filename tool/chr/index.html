@@ -49,11 +49,15 @@
         <button id="open">ファイルを開く(O)</button>
         <button id="save">保存(S)</button>
 
-        <button id="open_palette">パレットを開く</button>
+        <button id="open_palette" style="margin-left: 20px;">パレットを開く</button>
         <button id="save_palette">パレットを保存</button>
 
-        <button id="prev">＜</button>
+        <button id="prev" style="margin-left: 20px;">＜</button>
         <button id="next">＞</button>
+
+        <span style="margin-left: 20px;">Page: <span id="page">0 / 0</span></span>
+        <span style="margin-left: 20px;">Address: <span id="address">$0000</span></span>
+
         <input type="file" id="file" style="display: none;"/>
     </nav>
     <main>
@@ -65,33 +69,59 @@
                     <canvas id="editorLayer" width="512" height="512"></canvas>
                     <canvas id="editorCursor" width="512" height="512"></canvas>
                 </div>
-                <article class="card">
-                    <header>
-                        <h3>パレット</h3>
-                    </header>
-                    <footer>
-                        <div class="flex five">
-                            <div></div>
-                            <div class="center">0</div>
-                            <div class="center">1</div>
-                            <div class="center">2</div>
-                            <div class="center">3</div>
+                <div style="max-width: 512px;">
+                    <article class="card" style="margin-top: 20px;">
+                        <header>
+                            <h3>パレット</h3>
+                        </header>
+                        <footer>
+                            <div class="flex five">
+                                <div></div>
+                                <div class="center">0</div>
+                                <div class="center">1</div>
+                                <div class="center">2</div>
+                                <div class="center">3</div>
 
-                            <div>BG</div>
-                            <div><div class="center box-default"><span class="hex">$0f</span></div></div>
-                            <div><div class="center box" id="bg1"><span class="hex"></span></div></div>
-                            <div><div class="center box" id="bg2"><span class="hex"></span></div></div>
-                            <div><div class="center box" id="bg3"><span class="hex"></span></div></div>
+                                <div>BG</div>
+                                <div><div class="center box-default"><span class="hex">$0f</span></div></div>
+                                <div><div class="center box" id="bg-1"><span class="hex">$08</span></div></div>
+                                <div><div class="center box" id="bg-2"><span class="hex">$18</span></div></div>
+                                <div><div class="center box" id="bg-3"><span class="hex">$39</span></div></div>
 
-                            <div>スプライト</div>
-                            <div><div class="center box-default"><span class="hex">$0f</span></div></div>
-                            <div><div class="center box" id="sp1"><span class="hex">$08</span></div></div>
-                            <div><div class="center box" id="sp2"><span class="hex">$18</span></div></div>
-                            <div><div class="center box" id="sp3"><span class="hex">$39</span></div></div>
-                        </div>
-                        
-                    </footer>
-                </article>
+                                <div>Sprite</div>
+                                <div><div class="center box-default"><span class="hex">$0f</span></div></div>
+                                <div><div class="center box" id="sp-1"><span class="hex">$08</span></div></div>
+                                <div><div class="center box" id="sp-2"><span class="hex">$18</span></div></div>
+                                <div><div class="center box" id="sp-3"><span class="hex">$39</span></div></div>
+                            </div>
+                            
+                        </footer>
+                    </article>
+                    <!-- 実装予定
+                    <article class="card" style="margin-top: 20px;">
+                        <header>
+                            <h3>エディター表示</h3>
+                        </header>
+                        <footer>
+                            <div class="flex two">
+                                <div>
+                                    <label>
+                                        <input type='radio' name="gridmode" checked>
+                                        <span class="checkable">2x2の領域</span>
+                                    </label>
+                                </div>
+                                <div>
+                                    <label>
+                                        <input type='radio' name="gridmode">
+                                        <span class="checkable">1x4の領域</span>
+                                    </label>
+                                </div>
+                            </div>
+                            
+                        </footer>
+                    </article>
+                    -->
+               </div> 
             </div>
             <div class="two-third">
                 <div class="canvas-wrapper">
@@ -134,27 +164,12 @@ $(() => {
     let clickedBoxId = null;
     // 解析クラス初期化
     const chr = new CHR(editor, editorLayer, editorCursor, preview, previewLayer);
+    chr.onChangeView(function() {
+        $('#address').text(chr.getCurrentInfo());
+    });
 
     $('#file').on('change', function(event) {
-        const ext = $(this).attr('accept');
-        const reader = new FileReader();
-        // 読み込みが完了したら、結果を表示
-        reader.onload = function (event) {
-            // chr読み込み
-            if (ext === '.chr') {
-                chr.load(event.target.result);
-            
-            // パレットデータ読み込み
-            } else {
-                const enc = new TextDecoder('utf-8');
-                const jsonText = enc.decode(new Uint8Array(event.target.result));
-                chr.palette = JSON.parse(jsonText);
-                chr.drawPreview();
-                loadPallete();
-            }
-        };
-        // ファイルをテキストとして読み込む
-        reader.readAsArrayBuffer(event.target.files[0]);
+        openFile(event.target.files[0]);
     });
 
     // chrファイル保存
@@ -179,10 +194,12 @@ $(() => {
     // 前へ
     $('#prev').on('click', function() {
         chr.prev();
+        showPage();
     });
     // 次へ
     $('#next').on('click', function() {
         chr.next();
+        showPage();
     });
     
     // 画面上のパレットカラー選択
@@ -193,7 +210,8 @@ $(() => {
     // パレットから色選択時のイベント
     $(document).on('click', '.box-pallete', function() {
         const color = parseInt('0x'+$(this).text(), 16);
-        chr.setPallete(clickedBoxId.slice(0,2), clickedBoxId.slice(2), color);
+        const [type, number] =  clickedBoxId.split('-');
+        chr.setPallete(type, number, color);
         
         setColor(clickedBoxId);
         $('#palette_modal').prop('checked', false);
@@ -201,12 +219,18 @@ $(() => {
 
     // キーボード操作追加
     window.addEventListener('keydown', (event) => {
+        // ESCでモーダルを度汁
+        if (event.keyCode == 27) {
+            $('#palette_modal').prop('checked', false);
+            return;
+        }
+
         if (!event.ctrlKey) {
             return;
         }
         switch(event.key) {
             case 'o':
-                $('#file').click();
+                $('#open').click();
                 event.preventDefault();
             break;
             case 's':
@@ -215,6 +239,35 @@ $(() => {
             break;
         }
     });
+
+
+    // ファイルオープン
+    const openFile = (file) => {
+        const ext = file.name.split('.').pop();
+        if (ext.includes(['chr', 'json'])) {
+            return;
+        }
+
+        const reader = new FileReader();
+        // 読み込みが完了したら、結果を表示
+        reader.onload = function (event) {
+            // chr読み込み
+            if (ext === 'chr') {
+                chr.load(event.target.result);
+                showPage();
+            
+            // パレットデータ読み込み
+            } else if (ext === 'json') {
+                const enc = new TextDecoder('utf-8');
+                const jsonText = enc.decode(new Uint8Array(event.target.result));
+                chr.palette = JSON.parse(jsonText);
+                chr.drawPreview();
+                loadPallete();
+            }
+        };
+        // ファイルをテキストとして読み込む
+        reader.readAsArrayBuffer(file);
+    }
 
     // ファイルのダウンロード
     const download = (file, blob) => {
@@ -237,15 +290,21 @@ $(() => {
     };
 
     const setColor = (id) => {
-        const [index, color] = chr.getPallete(id.slice(0,2), id.slice(2));
+        const [type, number] =  id.split('-');
+        const [index, color] = chr.getPallete(type, number);
         $(`#${id}`).css('background-color', color).children('span').text('$'+toHex(index));
     };
 
-    // パレットデータの読みこみ
+    // パレットデータの読み込み
     const loadPallete = () => {
-        for (const id of ['bg1', 'bg2', 'bg3', 'sp1', 'sp2', 'sp3']) {
+        for (const id of ['bg-1', 'bg-2', 'bg-3', 'sp-1', 'sp-2', 'sp-3']) {
             setColor(id);
         }
+    }
+
+    // 現在表示しているページ番号
+    const showPage = () => {
+        $('#page').text(`${chr.viewPage} / ${chr.maxPage}`);
     }
 
     // パレット色追加
@@ -266,6 +325,36 @@ $(() => {
     // 初期パレットロード
     loadPallete();
 
+
+    // ドラッグ&ドロップ
+    $(document).on('dragover', function(event) {
+        event.preventDefault();
+        // ファイルをドラッグ的な何かを表示
+
+    });
+    $(document).on('drop', function(event) {
+        let orgEvent = event;
+        if (event.originalEvent) {
+            orgEvent = event.originalEvent;
+            orgEvent.preventDefault();
+        }
+        event.preventDefault();
+
+        // ファイルの情報が取得できることまで確認
+
+        [...orgEvent.dataTransfer.items].forEach((item, i) => {
+            // ドロップしたものがファイルでない場合は拒否する
+            if (item.kind !== 'file') {
+                return;
+            }
+            openFile(item.getAsFile());
+        });
+    });
+
+
+    $('#debug').on('click', function() {
+        console.log(chr.getCurrentInfo());
+    });
 });
 </script>
 
