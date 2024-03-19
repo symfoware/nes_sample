@@ -119,40 +119,32 @@ class EventListener {
         let moveCursor = false;
         let changeDot = -1;
         switch(event.key){
-            case 'ArrowLeft':
-                console.log('左');
+            case 'ArrowLeft': // 左矢印
                 this.cursorX -= 1;
                 moveCursor = true;
             break;
-            case 'ArrowRight':
-                console.log('右');
+            case 'ArrowRight': // 右矢印
                 this.cursorX += 1;
                 moveCursor = true;
             break;
-            case 'ArrowUp':
-                console.log('上');
+            case 'ArrowUp': // 上矢印
                 this.cursorY -= 1;
                 moveCursor = true;
             break;
-            case 'ArrowDown':
-                console.log('下');
+            case 'ArrowDown': // 下矢印
                 this.cursorY += 1;
                 moveCursor = true;
             break;
             case '0':
-                //console.log('0');
                 changeDot = 0;
             break;
             case '1':
-                //console.log('1');
                 changeDot = 1;
             break;
             case '2':
-                //console.log('2');
                 changeDot = 2;
             break;
             case '3':
-                //console.log('3');
                 changeDot = 3;
             break;
         }
@@ -256,6 +248,10 @@ export class CHR {
             sp: [ 0x0f, 0x08, 0x18, 0x39],
         };
 
+        // 右側グリッドの表示
+        this.gridX = 2;
+        this.gridY = 2;
+
         this.listener = new EventListener(this);
         // クリックイベント設定
         editorCursor.addEventListener('click', (event) => { this.listener.clickEditor(event) });
@@ -305,11 +301,16 @@ export class CHR {
         // add page shift
         shift += PREVIEW_WIDTH * PREVIEW_HEIGHT * this.viewPage;
 
-        for (let y = 0; y < 2; y++) {
-            for (let x = 0; x < 2; x++) {
+        const vxy = [
+            [0, 0], [1, 0], [0, 1], [1, 1],
+        ];
+        let counter = 0;
+        for (let y = 0; y < this.gridY; y++) {
+            for (let x = 0; x < this.gridX; x++) {
                 const chip = this.chips[(x + y * 16) + shift];
-                this.drawChip(chip, x, y, EDITOR_PX, this.editor);
+                this.drawChip(chip, vxy[counter][0], vxy[counter][1], EDITOR_PX, this.editor);
                 this.editorChips.push(chip);
+                counter += 1;
             }
         }
 
@@ -405,18 +406,25 @@ export class CHR {
     }
 
     drawPreviewGrid(x, y, withEditor=true) {
-        if ((PREVIEW_WIDTH - 1) <= x) {
-            x -= 1;
+
+        // 領域外判定
+        if ((PREVIEW_WIDTH - this.gridX) <= x) {
+            x = PREVIEW_WIDTH - this.gridX;
         }
-        if ((PREVIEW_HEIGHT - 1) <= y) {
-            y -= 1;
+        if ((PREVIEW_HEIGHT - this.gridY) <= y) {
+            y = PREVIEW_HEIGHT - this.gridY;
         }
 
         // 背景をクリア
         this.preview.clearLayer();
         // 詳細表示している範囲を囲む
         this.preview.setLayerStrokeStyle(3, '#38f');
-        this.preview.strokeLayerRect(PREVIEW_GRID * x, PREVIEW_GRID * y, PREVIEW_PX * 8 * 2, PREVIEW_PX * 8 * 2);
+        this.preview.strokeLayerRect(
+            PREVIEW_GRID * x,
+            PREVIEW_GRID * y,
+            PREVIEW_PX * 8 * this.gridX,
+            PREVIEW_PX * 8 * this.gridY
+        );
 
         if (!withEditor) {
             //return;
@@ -533,6 +541,15 @@ export class CHR {
     // イベント設定
     onChangeView(callback) {
         this.onChangeViewCallback = callback;
+    }
+
+    
+    // ----------------------------------------------------------------------
+    // 使用するグリッドモード
+    setGridMode(x, y) {
+        this.gridX = x;
+        this.gridY = y;
+        this.drawPreviewGrid(this.listener.gridX, this.listener.gridY);
     }
 
 }

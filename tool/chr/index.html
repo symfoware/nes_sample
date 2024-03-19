@@ -97,7 +97,6 @@
                             
                         </footer>
                     </article>
-                    <!-- 実装予定
                     <article class="card" style="margin-top: 20px;">
                         <header>
                             <h3>エディター表示</h3>
@@ -106,21 +105,20 @@
                             <div class="flex two">
                                 <div>
                                     <label>
-                                        <input type='radio' name="gridmode" checked>
-                                        <span class="checkable">2x2の領域</span>
+                                        <input type='radio' name="gridmode" value="2x2" checked>
+                                        <span class="checkable">2x2表示</span>
                                     </label>
                                 </div>
                                 <div>
                                     <label>
-                                        <input type='radio' name="gridmode">
-                                        <span class="checkable">1x4の領域</span>
+                                        <input type='radio' name="gridmode" value="4x1">
+                                        <span class="checkable">4x1を2x2表示</span>
                                     </label>
                                 </div>
                             </div>
                             
                         </footer>
                     </article>
-                    -->
                </div> 
             </div>
             <div class="two-third">
@@ -352,8 +350,9 @@ $(() => {
     });
 
 
-    $('#debug').on('click', function() {
-        console.log(chr.getCurrentInfo());
+    $('input[name="gridmode"]').on('change', function() {
+        const [x, y] = $(this).val().split('x');
+        chr.setGridMode(x, y);
     });
 });
 </script>
