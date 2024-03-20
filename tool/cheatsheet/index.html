@@ -1,0 +1,1218 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no">
+    <title>NES CHEATSHEET</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/picnic">
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
+
+<style type="text/css">
+.hide {
+    display: none;
+}
+table > caption{
+    text-align: left;
+}
+th {
+    white-space: nowrap;
+}
+table {
+    margin-bottom: 20px;
+}
+.label {
+    font-size: 0.7em;
+    margin-left: 0;
+}
+
+.bg-success {
+    background-color: rgba(46, 204, 64, .8)!important;
+}
+.bg-warning {
+    background-color: rgba(255, 133, 27, .8)!important;
+}
+.bg-error {
+    background-color: rgba(255, 65, 54, .8)!important;
+}
+.bg-gray {
+    background-color: rgba(17, 17, 17, .05);
+}
+</style>
+</head>
+<body>
+    <nav>
+        <button id="instruction" class="tab-change">命令表</button>
+        <button id="memory" class="tab-change">メモリマップ</button>
+        <button id="register" class="tab-change">I/Oレジスタ</button>
+        <button id="pat" class="tab-change">パット入力/スプライト</button>
+    </nav>
+    <main style="padding: 70px 10px 0px 20px">
+        <!-- ========================================================================== -->
+        <!-- 命令表 -->
+        <section id="instruction-tab">
+            <div class="flex three">
+                <!-- ------------------ 1列目 ------------------ -->
+                <div>
+                    <table class="primary">
+                        <caption>ロード／ストア／レジスタコピー</caption>
+                        <thead>
+                            <tr>
+                                <th>記載</th>
+                                <th>処理内容</th>
+                                <th>使用例</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>lda</td>
+                                <td>mem/val → A</td>
+                                <td>lda #$3f</td>
+                            </tr>
+                            <tr>
+                                <td>ldx</td>
+                                <td>mem/val → X</td>
+                                <td>ldx $003f</td>
+                            </tr>
+                            <tr>
+                                <td>ldy</td>
+                                <td>mem/val → Y</td>
+                                <td>ldy #$0f</td>
+                            </tr>
+                            <tr>
+                                <td>sta</td>
+                                <td>A → mem</td>
+                                <td>sta $2000</td>
+                            </tr>
+                            <tr>
+                                <td>stx</td>
+                                <td>X → mem</td>
+                                <td>stx $2000</td>
+                            </tr>
+                            <tr>
+                                <td>sty</td>
+                                <td>Y → mem</td>
+                                <td>sty $2000</td>
+                            </tr>
+                            <tr>
+                                <td>txa</td>
+                                <td>X → A</td>
+                                <td>txa</td>
+                            </tr>
+                            <tr>
+                                <td>tya</td>
+                                <td>Y → A</td>
+                                <td>tya</td>
+                            </tr>
+                            <tr>
+                                <td>tax</td>
+                                <td>A → X</td>
+                                <td>tax</td>
+                            </tr>
+                            <tr>
+                                <td>tay</td>
+                                <td>A → Y</td>
+                                <td>tay</td>
+                            </tr>
+                            <tr>
+                                <td>txs</td>
+                                <td>X → S</td>
+                                <td>txs</td>
+                            </tr>
+                            <tr>
+                                <td>tsx</td>
+                                <td>S → X</td>
+                                <td>tsx</td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <table class="primary">
+                        <caption>演算命令</caption>
+                        <thead>
+                            <tr>
+                                <th>記載</th>
+                                <th>処理内容</th>
+                                <th>使用例</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>adc</td>
+                                <td>A + mem/val + <span class="label">C</span><br>→ A</td>
+                                <td>adc #$10</td>
+                            </tr>
+                            <tr>
+                                <td>sbc</td>
+                                <td>A - mem/val - <span class="label">~C</span><br>→ A</td>
+                                <td>sbc #$10</td>
+                            </tr>
+                            <tr>
+                                <td>and</td>
+                                <td>A AND mem/val<br>→ A</td>
+                                <td>and #$01</td>
+                            </tr>
+                            <tr>
+                                <td>ora</td>
+                                <td>A OR mem/val<br>→ A</td>
+                                <td>ora #$01</td>
+                            </tr>
+                            <tr>
+                                <td>eor</td>
+                                <td>A XOR mem/val<br>→ A</td>
+                                <td>eor $2000</td>
+                            </tr>
+                            <tr>
+                                <td>inc</td>
+                                <td>A + 1 → A</td>
+                                <td>inc</td>
+                            </tr>
+                            <tr>
+                                <td>inx</td>
+                                <td>X + 1 → X</td>
+                                <td>inx</td>
+                            </tr>
+                            <tr>
+                                <td>iny</td>
+                                <td>Y + 1 → Y</td>
+                                <td>iny</td>
+                            </tr>
+                            <tr>
+                                <td>dec</td>
+                                <td>A - 1 → A</td>
+                                <td>dec</td>
+                            </tr>
+                            <tr>
+                                <td>dex</td>
+                                <td>X - 1 → X</td>
+                                <td>dex</td>
+                            </tr>
+                            <tr>
+                                <td>dey</td>
+                                <td>Y - 1 → Y</td>
+                                <td>dey</td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <table class="primary">
+                        <caption>比較命令<br>演算結果によるフラグをセットするだけで、結果は保存しない</caption>
+                        <thead>
+                            <tr>
+                                <th>記載</th>
+                                <th>処理内容</th>
+                                <th>使用例</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>cmp</td>
+                                <td>A - mem/val</td>
+                                <td>cmp $2001</td>
+                            </tr>
+                            <tr>
+                                <td>cpx</td>
+                                <td>X - mem/val</td>
+                                <td>cpx #$01</td>
+                            </tr>
+                            <tr>
+                                <td>cpy</td>
+                                <td>Y - mem/val</td>
+                                <td>cpy #$01</td>
+                            </tr>
+                            <tr>
+                                <td>bit</td>
+                                <td>A AND mem/val</td>
+                                <td>bit #$01</td>
+                            </tr>
+                        </tbody>
+                        <tfoot>
+                            <tr>
+                                <td colspan="3">
+                                    cmpの結果行われること<br>
+                                    a &gt;= mem/val なら <span class="label">C</span>=1 (bcsで分岐できる）<br>
+                                    a &lt; mem/val なら <span class="label">C</span>=0（bccで分岐できる）<br>
+                                    a == mem/val なら <span class="label error">Z</span>=1（beqで分岐できる）<br>
+                                    a != mem/val なら <span class="label error">Z</span>=0（bneで分岐できる）<br>
+                                </td>
+                            </tr>
+                        </tfoot>
+                    </table>
+
+                    <table class="primary">
+                        <caption>スタック命令</caption>
+                        <thead>
+                            <tr>
+                                <th>記載</th>
+                                <th>処理内容</th>
+                                <th>使用例</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>pha</td>
+                                <td>Aをスタックへ<br>プッシュ</td>
+                                <td>pha</td>
+                            </tr>
+                            <tr>
+                                <td>php</td>
+                                <td>Pをスタックへ<br>プッシュ</td>
+                                <td>php</td>
+                            </tr>
+                            <tr>
+                                <td>pla</td>
+                                <td>Aをスタックから<br>プル</td>
+                                <td>pla</td>
+                            </tr>
+                            <tr>
+                                <td>plp</td>
+                                <td>Pをスタックから<br>プル</td>
+                                <td>plp</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    
+                </div>
+                
+                <!-- ------------------ 2列目 ------------------ -->
+                <div>
+                    <table class="success">
+                        <caption>ジャンプ／条件分岐／サブルーチンコール／復帰</caption>
+                        <thead>
+                            <tr>
+                                <th>記載</th>
+                                <th>処理内容</th>
+                                <th>使用例</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>jmp</td>
+                                <td>指定アドレスへジャンプ</td>
+                                <td>jmp label</td>
+                            </tr>
+                            <tr>
+                                <td>bcc</td>
+                                <td><span class="label">C</span> = 0のとき<br>指定アドレスへジャンプ</td>
+                                <td>bcc label</td>
+                            </tr>
+                            <tr>
+                                <td>bcs</td>
+                                <td><span class="label">C</span> = 1のとき<br>指定アドレスへジャンプ</td>
+                                <td>bcs label</td>
+                            </tr>
+                            <tr>
+                                <td>beq</td>
+                                <td><span class="label error">Z</span> = 1のとき<br>指定アドレスへジャンプ</td>
+                                <td>beq label</td>
+                            </tr>
+                            <tr>
+                                <td>bne</td>
+                                <td><span class="label error">Z</span> = 0のとき<br>指定アドレスへジャンプ</td>
+                                <td>bne label</td>
+                            </tr>
+                            <tr>
+                                <td>bmi</td>
+                                <td><span class="label warning">N</span> = 1のとき<br>指定アドレスへジャンプ</td>
+                                <td>bmi label</td>
+                            </tr>
+                            <tr>
+                                <td>bpl</td>
+                                <td><span class="label warning">N</span> = 0のとき<br>指定アドレスへジャンプ</td>
+                                <td>bpl label</td>
+                            </tr>
+                            <tr>
+                                <td>bvs</td>
+                                <td><span class="label success">V</span> = 1のとき<br>指定アドレスへジャンプ</td>
+                                <td>bvs label</td>
+                            </tr>
+                            <tr>
+                                <td>bvc</td>
+                                <td><span class="label success">V</span> = 0のとき<br>指定アドレスへジャンプ</td>
+                                <td>bvc label</td>
+                            </tr>
+                            <tr>
+                                <td>jsr</td>
+                                <td>指定アドレスのサブルーチンへ</td>
+                                <td>jsr label</td>
+                            </tr>
+                            <tr>
+                                <td>rts</td>
+                                <td>サブルーチンから復帰</td>
+                                <td>rts</td>
+                            </tr>
+                            <tr>
+                                <td>rti</td>
+                                <td>割り込み処理から復帰</td>
+                                <td>rti</td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <table class="primary">
+                        <caption>シフト／ローテート</caption>
+                        <thead>
+                            <tr>
+                                <th>記載</th>
+                                <th>処理内容</th>
+                                <th>使用例</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>asl</td>
+                                <td>左シフト<br>bit0 = 0<br>C = bit7<br>bit[n] = bit[n-1]</td>
+                                <td>asl</td>
+                            </tr>
+                            <tr>
+                                <td>lsr</td>
+                                <td>論理右シフト<br>bit7 = 0<br>C = bit0<br>bit[n] = bit[n+1]</td>
+                                <td>lsr</td>
+                            </tr>
+                            <tr>
+                                <td>rol</td>
+                                <td>左ローテート<br>bit0 = C<br>C = bit7<br>bit[n] = bit[n-1]</td>
+                                <td>rol</td>
+                            </tr>
+                            <tr>
+                                <td>ror</td>
+                                <td>右ローテート<br>bit7 = C<br>C = bit0<br>bit[n] = bit[n+1]</td>
+                                <td>ror</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    
+                    <table class="primary">
+                        <caption>その他</caption>
+                        <thead>
+                            <tr>
+                                <th>記載</th>
+                                <th>処理内容</th>
+                                <th>使用例</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>brk</td>
+                                <td>ソフトウェア割り込み</td>
+                                <td>brk</td>
+                            </tr>
+                            <tr>
+                                <td>nop</td>
+                                <td>何もしない</td>
+                                <td>nop</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            
+                <!-- ------------------ 3列目 ------------------ -->
+                <div>
+                    <table class="error">
+                        <caption>レジスタ</caption>
+                        <thead>
+                            <tr>
+                                <th>記号</th>
+                                <th>内容</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>A</td>
+                                <td>
+                                    アキュムレータ<br>
+                                    計算などに使うレジスタ
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>X,Y</td>
+                                <td>
+                                    インデクスレジスタ<br>
+                                    主にメモリアクセス等に使用
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>S</td>
+                                <td>
+                                    スタックポインタ<br>
+                                    スタックのアドレスを保持しておくレジスタ<br>
+                                    レジスタは8bitで、スタックエリアは$0100-$01FFの間に取られ、下位8bitが保持されている
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>P</td>
+                                <td>
+                                    プロセッサステータスレジスタ<br>
+                                    計算結果のフラグを保持してるレジスタ
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <table class="success">
+                        <caption>プロセッサステータスレジスタ</caption>
+                        <thead>
+                            <tr>
+                                <th>bit</th>
+                                <th>記号</th>
+                                <th>内容</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>7</td>
+                                <td><span class="label warning">N</span></td>
+                                <td>
+                                    ネガティブフラグ<br>
+                                    アキュムレータの最上位ビットがセット
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>6</td>
+                                <td><span class="label success">V</span></td>
+                                <td>
+                                    オーバーフローフラグ<br>
+                                    演算結果が127を超えるか-128より小さくなったときにセット
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>4</td>
+                                <td>B</td>
+                                <td>
+                                    ブレイクフラグ<br>
+                                    BRKによって割り込み処理が起きたときにセット<br>
+                                    IRQ割り込みかBRK割り込みかの識別に使用
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>3</td>
+                                <td>D</td>
+                                <td>
+                                    デシマルモードフラグ<br>
+                                    未サポート
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>2</td>
+                                <td>I</td>
+                                <td>
+                                    インタラプトフラグ<br>
+                                    このフラグをセットすると割り込み不許可
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>1</td>
+                                <td><span class="label error">Z</span></td>
+                                <td>
+                                    ゼロフラグ<br>
+                                    演算結果が０になるとセット
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>0</td>
+                                <td><span class="label">C</span></td>
+                                <td>
+                                    キャリーフラグ<br>
+                                    キャリーが発生したときセット<br>
+                                    また引き算命令ではボローが起きたときは0、起きなかったときは1
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <table class="success">
+                        <caption>ステータスビットセット／クリア</caption>
+                        <thead>
+                            <tr>
+                                <th>記載</th>
+                                <th>処理内容</th>
+                                <th>使用例</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>clc</td>
+                                <td>0 → <span class="label">C</span></td>
+                                <td>clc</td>
+                            </tr>
+                            <tr>
+                                <td>cld</td>
+                                <td>0 → D</td>
+                                <td>cld</td>
+                            </tr>
+                            <tr>
+                                <td>cli</td>
+                                <td>0 → I</td>
+                                <td>cli</td>
+                            </tr>
+                            <tr>
+                                <td>clv</td>
+                                <td>0 → <span class="label success">V</span></td>
+                                <td>clv</td>
+                            </tr>
+                            <tr>
+                                <td>sec</td>
+                                <td>1 → <span class="label">C</span></td>
+                                <td>sec</td>
+                            </tr>
+                            <tr>
+                                <td>sed</td>
+                                <td>1 → D</td>
+                                <td>sed</td>
+                            </tr>
+                            <tr>
+                                <td>sei</td>
+                                <td>1 → I</td>
+                                <td>sei</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- ========================================================================== -->
+        <!-- メモリマップ -->
+        <section class="hide" id="memory-tab">
+            <div class="flex two">
+                <div>
+                    <table class="primary">
+                        <caption>本体メモリマップ</caption>
+                        <thead>
+                            <tr>
+                                <th>番地</th>
+                                <th>用途</th>
+                                <th>補足</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr class="bg-success">
+                                <td>$0000-$00FF</td>
+                                <td>RAM(ゼロページ)</td>
+                                <td>高速アクセス可能</td>
+                            </tr>
+                            <tr class="bg-gray">
+                                <td>$0100-$01FF</td>
+                                <td>スタック領域</td>
+                                <td></td>
+                            </tr>
+                            <tr class="bg-success">
+                                <td>$0200-$07FF</td>
+                                <td>RAM</td>
+                                <td></td>
+                            </tr>
+                            <tr class="bg-gray">
+                                <td>$0800-$1FFF</td>
+                                <td>未使用</td>
+                                <td>$0000-$07FFのミラー</td>
+                            </tr>
+                            <tr class="bg-error">
+                                <td>$2000-$2007</td>
+                                <td>I/Oレジスタ</td>
+                                <td>PPU</td>
+                            </tr>
+                            <tr class="bg-gray">
+                                <td>$2008-$3FFF</td>
+                                <td>未使用</td>
+                                <td>$2000-2007のミラー</td>
+                            </tr>
+                            <tr class="bg-error">
+                                <td>$4000-$401F</td>
+                                <td>I/Oポート</td>
+                                <td>APU,etc</td>
+                            </tr>
+                            <tr class="bg-gray">
+                                <td>$4020-$5FFF</td>
+                                <td>拡張ROM用</td>
+                                <td></td>
+                            </tr>
+                            <tr class="bg-gray">
+                                <td>$6000-$7FFF</td>                                
+                                <td>バックアップRAM用</td>
+                                <td></td>
+                            </tr>
+                            <tr class="bg-warning">
+                                <td>$8000-$BFFF</td>
+                                <td>プログラムROM LOW</td>
+                                <td>ROMから転送</td>
+                            </tr>
+                            <tr class="bg-warning">
+                                <td>$C000-$FFFF</td>
+                                <td>プログラムROM HIGH</td>
+                                <td>ROMから転送</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            
+                <div>
+                    <table class="primary">
+                        <caption>PPU メモリマップ</caption>
+                        <thead>
+                            <tr>
+                                <th>番地</th>
+                                <th>用途</th>
+                                <th>補足</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr class="bg-error">
+                                <td>$0000-$0FFF</td>
+                                <td>パターンテーブル0</td>
+                                <td>ROMから読み込まれたBG</td>
+                            </tr>
+                            <tr class="bg-error">
+                                <td>$1000-$1FFF</td>
+                                <td>パターンテーブル1</td>
+                                <td>ROMから読み込まれたスプライト</td>
+                            </tr>
+                            <tr class="bg-success">
+                                <td>$2000-$23BF</td>
+                                <td>ネームテーブル0</td>
+                                <td>画面0のBG配置パターン</td>
+                            </tr>
+                            <tr class="bg-success">
+                                <td>$23C0-$23FF</td>
+                                <td>属性テーブル0</td>
+                                <td>画面0のパレット指定</td>
+                            </tr>
+                            <tr class="bg-gray">
+                                <td>$2400-$27BF</td>
+                                <td>ネームテーブル1</td>
+                                <td>画面1のBG配置パターン</td>
+                            </tr>
+                            <tr class="bg-gray">
+                                <td>$27C0-$27FF</td>
+                                <td>属性テーブル1</td>
+                                <td>画面1のパレット指定</td>
+                            </tr>
+                            <tr class="bg-gray">
+                                <td>$2800-$2BBF</td>
+                                <td>ネームテーブル2</td>
+                                <td>画面2のBG配置パターン</td>
+                            </tr>
+                            <tr class="bg-gray">
+                                <td>$2BC0-$2BFF</td>
+                                <td>属性テーブル2</td>
+                                <td>画面2のパレット指定</td>
+                            </tr>
+                            <tr class="bg-gray">
+                                <td>$2C00-$2FBF</td>
+                                <td>ネームテーブル3</td>
+                                <td>画面3のBG配置パターン</td>
+                            </tr>
+                            <tr class="bg-gray">
+                                <td>$2FC0-$2FFF</td>
+                                <td>属性テーブル3</td>
+                                <td>画面3のパレット指定</td>
+                            </tr>
+                            <tr class="bg-gray">
+                                <td>$3000-$3EFF</td>
+                                <td>未使用</td>
+                                <td>$2000-$2EFFのミラー</td>
+                            </tr>
+                            <tr class="bg-warning">
+                                <td>$3F00-$3F0F</td>
+                                <td>パレットテーブル0</td>
+                                <td>BG用パレット設定</td>
+                            </tr>
+                            <tr class="bg-warning">
+                                <td>$3F10-$3F1F</td>
+                                <td>パレットテーブル1</td>
+                                <td>スプライト用パレット設定</td>
+                            </tr>
+                            <tr class="bg-gray">
+                                <td>$3F20-$3FFF</td>
+                                <td>未使用</td>
+                                <td>パレットテーブルのミラー</td>
+                            </tr>
+                            <tr class="bg-gray">
+                                <td>$4000-$FFFF</td>
+                                <td>未使用</td>
+                                <td>$0000-$3FFFのミラー</td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                </div>
+            </div>
+        </section>
+
+        <!-- ========================================================================== -->
+        <!-- I/Oレジスタ -->
+        <section id="register-tab" class="hide">
+            <div class="flex two">
+                <div>
+                    <table>
+                        <caption>I/Oレジスタマップ $2000</caption>
+                        <thead>
+                            <tr>
+                                <th>アドレス</th>
+                                <th>R/W</th>
+                                <th>内容</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>$2000</td>
+                                <td>W</td>
+                                <td>
+                                    PPUコントロールレジスタ1<br>
+                                    bit7: VBlank時にNMIを実行(0:実行しない,1:実行する)<br>
+                                    bit6: PPUマスター/スレーブセレクト(常に1にする)<br>
+                                    bit5: スプライトサイズ(0:8x8,1:8x16)<br>
+                                    bit4: BGパターンテーブルアドレス(0:$0000,1:$1000)<br>
+                                    bit3: スプライトパターンテーブルアドレス(0:$0000,1:$1000)<br>
+                                    bit2: PPUアドレスインクリメント(0:+1,1:+32)<br>
+                                    bit1-0: 表示するネームテーブルアドレス番号<br>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>$2001</td>
+                                <td>W</td>
+                                <td>
+                                    PPUコントロールレジスタ2<br>
+                                    bit7-5: bit0=1のとき背景色/bit0=1のとき色強調<br>
+                                    <blockquote>
+                                        000:なし<br>
+                                        001:緑<br>
+                                        010:青<br>
+                                        100:赤<br>
+                                        それ以外の数字は不可<br>
+                                    </blockquote>
+                                    bit4: スプライト表示(0:非表示,1:表示)<br>
+                                    bit3: BG表示(0:非表示,1:表示)<br>
+                                    bit2: スプライトクリップ(0:画面の左８ドットを表示しない,1:クリップなし)<br>
+                                    bit1: BGクリップ(0:画面の左８ドットを表示しない,1:クリップなし)<br>
+                                    bit0: ディスプレイタイプ(0:カラー,1:モノクロ)<br>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>$2002</td>
+                                <td>R</td>
+                                <td>
+                                    PPUステータスレジスタ<br>
+                                    bit7: VBlank発生(1:VBlank中、ただしRead後0クリアされる)<br>
+                                    bit6: スプライト#0ヒット(0:ヒットなし,1:ヒット)<br>
+                                    bit5: スキャンラインスプライト数(0:8個以下,1:9個以上)<br>
+                                    bit4: VRAM書きこみフラグ(0:書き込み成功,1:書き込み失敗)<br>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>$2003</td>
+                                <td>W</td>
+                                <td>
+                                    スプライトRAMアドレスレジスタ<br>
+                                    $2004を使ってスプライトRAMに書きこむアドレスを指定する。
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>$2004</td>
+                                <td>W</td>
+                                <td>
+                                    スプライトI/Oレジスタ<br>
+                                    $2003で指定したスプライトRAMにデータを書きこむ
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>$2005</td>
+                                <td>W</td>
+                                <td>
+                                    VRAMアドレスレジスタ1<br>
+                                    BGのスクロール値をセットする。<br>
+                                    このレジスタは2度書きレジスタでXのスクロール値、Yのスクロール値の順でセットする。<br>
+                                    $2002をReadするとセットの順番はリセットされ、X値をセットする番になっている。<br>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>$2006</td>
+                                <td>W</td>
+                                <td>
+                                    VRAMアドレスレジスタ2<br>
+                                    $2007を使ってVRAMに書きこむアドレスを指定する。<br>
+                                    このレジスタは2度書きレジスタで上位8bit、下位8bitの順でセットする。<br>
+                                    $2002をReadするとセットの順番はリセットされ、上位8bitをセットする番になっている。<br>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>$2007</td>
+                                <td>R/W</td>
+                                <td>
+                                    $2006で指定したアドレスのVRAMデータを読み書きする。<br>
+                                    読み書き後$2000のbit2の値により、VRAMアドレスが１または32足される。
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            
+                <div>
+                    <table class="primary">
+                        <caption>I/Oレジスタマップ $4000</caption>
+                        <thead>
+                            <tr>
+                                <th>アドレス</th>
+                                <th>R/W</th>
+                                <th>内容</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>$4000</td>
+                                <td>R/W</td>
+                                <td>
+                                    矩形波チャンネル１制御レジスタ１<br>
+                                    bit7-6: Dutyサイクル(positive/negative)<br>
+                                    <blockquote>
+                                        00: 2/14<br>
+                                        01: 4/12<br>
+                                        10: 8/ 8<br>
+                                        11:12/ 4<br>
+                                    </blockquote>
+                                    bit5: エンベロープDecayループ/長さカウンタ無効(1:ループ/無効)<br>
+                                    bit4: エンベロープDecay無効(1:無効,0:有効)<br>
+                                    bit3-0: ボリューム/Decayレート<br>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>$4001</td>
+                                <td>R/W</td>
+                                <td>
+                                    矩形波チャンネル１制御レジスタ２<br>
+                                    bit7: スイープ有効(0:無効,1:有効)<br>
+                                    bit6-4: スイープレート<br>
+                                    bit3: スイープ方向(1:decrease,0:increase)<br>
+                                    bit2-0: スイープ右シフト値<br>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>$4002</td>
+                                <td>R/W</td>
+                                <td>
+                                    矩形波チャンネル1周波数レジスタ1<br>
+                                    チャンネル1で使う周波数の下位8bitをセットする。<br>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>$4003</td>
+                                <td>R/W</td>
+                                <td>
+                                    矩形波チャンネル1周波数レジスタ2<br>
+                                    bit7-3: 音の長さ<br>
+                                    bit2-0: 周波数の上位3bit<br>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>$4004</td>
+                                <td>R/W</td>
+                                <td>
+                                    矩形波チャンネル2制御レジスタ1<br>
+                                    bit7-6: Dutyサイクル(positive/negative)<br>
+                                    <blockquote>
+                                        00: 2/14<br>
+                                        01: 4/12<br>
+                                        10: 8/ 8<br>
+                                        11:12/ 4<br>
+                                    </blockquote>
+                                    bit5: エンベロープDecayループ/長さカウンタ無効(1:ループ/無効)<br>
+                                    bit4: エンベロープDecay無効(1:無効,0:有効)<br>
+                                    bit3-0: ボリューム/Decayレート<br>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>$4005</td>
+                                <td>R/W</td>
+                                <td>
+                                    矩形波チャンネル2制御レジスタ1<br>
+                                    bit7: スイープ有効(0:無効,1:有効)<br>
+                                    bit6-4: スイープレート<br>
+                                    bit3: スイープ方向(1:decrease,0:increase)<br>
+                                    bit2-0: スイープ右シフト値<br>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>$4006</td>
+                                <td>R/W</td>
+                                <td>
+                                    矩形波チャンネル2周波数レジスタ1<br>
+                                    チャンネル1で使う周波数の下位8bitをセットする。<br>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>$4007</td>
+                                <td>R/W</td>
+                                <td>
+                                    矩形波チャンネル2周波数レジスタ2<br>
+                                    bit7-3: 音の長さ<br>
+                                    bit2-0: 周波数の上位3bit<br>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>$4008</td>
+                                <td>R/W</td>
+                                <td>三角波制御レジスタ1<br>
+                                    bit7: リニアカウンタスタート<br>
+                                    bit6-0: リニアカウンタ<br>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>$4009</td>
+                                <td></td>
+                                <td>未使用</td>
+                            </tr>
+                            <tr>
+                                <td>$400A</td>
+                                <td>R/W</td>
+                                <td>
+                                    三角波周波数レジスタ1<br>
+                                    チャンネル1で使う周波数の下位8bitをセットする。<br>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>$400B</td>
+                                <td>R/W</td>
+                                <td>三角波周波数レジスタ2<br>
+                                    bit7-3: 音の長さ<br>
+                                    bit2-0: 周波数の上位3bit<br>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>$400C</td>
+                                <td>R/W</td>
+                                <td>
+                                    ノイズ制御レジスタ1<br>
+                                    bit7-6: 未使用<br>
+                                    bit5: エンベロープDecayループ/長さカウンタ無効(1:ループ/無効)<br>
+                                    bit4: エンベロープDecay無効(1:無効,0:有効)<br>
+                                    bit3-0: ボリューム/Decayレート<br>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>$400D</td>
+                                <td></td>
+                                <td>未使用</td>
+                            </tr>
+                            <tr>
+                                <td>$400E</td>
+                                <td>R/W</td>
+                                <td>
+                                    ノイズ周波数レジスタ1<br>
+                                    bit7: 乱数タイプ選択(0:32Kmode,1:93bitmode)<br>
+                                    bit6-4: 未使用<br>
+                                    bit3-0: 波長選択<br>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>$400F</td>
+                                <td>R/W</td>
+                                <td>ノイズ周波数レジスタ2<br>
+                                    bit7-3: 音の長さ<br>
+                                    bit2-0: 未使用<br>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>$4010</td>
+                                <td>R/W</td>
+                                <td>DMC制御レジスタ1</td>
+                            </tr>
+                            <tr>
+                                <td>$4011</td>
+                                <td>R/W</td>
+                                <td>DMC制御レジスタ2</td>
+                            </tr>
+                            <tr>
+                                <td>$4012</td>
+                                <td>R/W</td>
+                                <td>DMCアドレスレジスタ</td>
+                            </tr>
+                            <tr>
+                                <td>$4013</td>
+                                <td>R/W</td>
+                                <td>DMCデータ長レジスタ</td>
+                            </tr>
+                            <tr>
+                                <td>$4014</td>
+                                <td>W</td>
+                                <td>
+                                    スプライトDMAレジスタ<br>
+                                    メモリからスプライトRAMへDMA転送を行う<br>
+                                    このレジスタに書きこんだ値をNをすると、<br>
+                                    Nx$100のアドレスから256バイトをスプライトRAMへ転送する。<br>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>$4015</td>
+                                <td>R/W</td>
+                                <td>
+                                    サウンドレジスタ<br>
+                                    bit7: DMC(Delta Modulation Channel)のIRQステータス(Readのみ)<br>
+                                    bit4: DMC(0:無効,1:有効)<br>
+                                    bit3: ノイズチャンネル(0:無効,1:有効)<br>
+                                    bit2: 三角波チャンネル(0:無効,1:有効)<br>
+                                    bit1: 矩形波チャンネル２(0:無効,1:有効)<br>
+                                    bit0: 矩形波チャンネル１(0:無効,1:有効)<br>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>$4016</td>
+                                <td>R/W</td>
+                                <td>
+                                    パッドI/O 1<br>
+                                    bit4: ガンコントリガー(0:ON,1:OFF)<br>
+                                    bit3: ガンコンスプライト検出(0:検出なし,1:検出)<br>
+                                    bit0: パッドデータ(0:OFF,1:ON)<br>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>$4017</td>
+                                <td>R/W</td>
+                                <td>
+                                    パッドI/O 2<br>
+                                    bit4: ガンコントリガー(0:ON,1:OFF)<br>
+                                    bit3: ガンコンスプライト検出(0:検出なし,1:検出)<br>
+                                    bit0: パッドデータ(0:OFF,1:ON)<br>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                </div>
+            </div>
+        </section>
+
+
+        <!-- ========================================================================== -->
+        <!-- パット入力/スプライト -->
+        <section id="pat-tab" class="hide">
+            <div class="flex two">
+                <div>
+                    <table class="primary">
+                        <caption>パット入力(I/Oレジスタ $4016,$4017)</caption>
+                        <thead>
+                            <tr>
+                                <th>index</th>
+                                <th>ボタン</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>1</td>
+                                <td>A</td>
+                            </tr>
+                            <tr>
+                                <td>2</td>
+                                <td>B</td>
+                            </tr>
+                            <tr>
+                                <td>3</td>
+                                <td>SELECT</td>
+                            </tr>
+                            <tr>
+                                <td>4</td>
+                                <td>START</td>
+                            </tr>
+                            <tr>
+                                <td>5</td>
+                                <td>UP</td>
+                            </tr>
+                            <tr>
+                                <td>6</td>
+                                <td>DOWN</td>
+                            </tr>
+                            <tr>
+                                <td>7</td>
+                                <td>LEFT</td>
+                            </tr>
+                            <tr>
+                                <td>8</td>
+                                <td>RIGHT</td>
+                            </tr>
+                            <tr>
+                                <td>9-16</td>
+                                <td>無効(マルチタップ用)</td>
+                            </tr>
+                            <tr>
+                                <td>17-24</td>
+                                <td>パット接続判定</td>
+                            </tr>
+                        </tbody>
+                        <tfoot>
+                            <tr>
+                                <td colspan="2">
+                                    パッドの入力判定は1ボタンずつ行う<br>
+                                    $4016に1を書きこんだ後0を書きこむとパッド入力がリセットされ、<br>
+                                    $4016のbit0を続けてロードすることで入力判定を行う<br>
+                                    $4016がコントローラ1,$4017がコントローラー2<br>
+                                    例)<br>
+                                    ; 初期化<br>
+                                    lda #$01<br>
+                                    sta $4016<br>
+                                    lda #$00 <br>
+                                    sta $4016<br><br>
+                                    
+                                    ; コントローラー1 パッド入力チェック(2コンは$4017)<br>
+                                    lda $4016 ; Aボタン判定 レジスタAのbit0が1なら押されている<br>
+                                    lda $4016 ; Bボタン判定<br>
+                                    ...
+
+                                </td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+                <div>
+                    <table class="primary">
+                        <caption>スプライト指定</caption>
+                        <thead>
+                            <tr>
+                                <th>byte</th>
+                                <th>内容</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>1</td>
+                                <td>Y座標</td>
+                            </tr>
+                            <tr>
+                                <td>2</td>
+                                <td>タイルインデクス番号</td>
+                            </tr>
+                            <tr>
+                                <td>3</td>
+                                <td>
+                                    bit7:垂直反転(1で反転)<br>
+                                    bit6:水平反転(1で反転)<br>
+                                    bit5:BGとの優先順位(0:手前、1:奥)
+                                    bit0-1:パレットの上位2bit<br>
+                                    (他のビットは0に)
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>4</td>
+                                <td>X座標</td>
+                            </tr>
+                        </tbody>
+                        <tfoot>
+                            <tr>
+                                <td colspan="2">
+                                    $2003, $2004<br>
+                                    スプライトの優先順位は0が1番手前で、63が1番奥
+                                </td>
+                            </tr>
+                        </tfoot>
+                    </table>
+
+                </div>
+            </div>
+        </section>
+    </main>
+<script type="module">
+$(() => {
+    $('.tab-change').on('click', function() {
+        $('section').addClass('hide');
+        $("#"+$(this).attr('id')+'-tab').removeClass('hide');
+    });
+});
+</script>
+</body>
+</html>
