@@ -45,33 +45,33 @@ copypal:
     jsr drawchip
 
 ; スプライト情報表示
-    ; スプライト描画
-    ; 変更するスプライトの番号(1スプライトで4byte消費するので、4の倍ごとに指定となる)
-    lda #$00 ; $00(スプライトRAMのアドレスは8ビット長)をAにロード
-    sta $2003 ; AのスプライトRAMのアドレスをストア
-    
+    ; $0x0700から0x07ffを使用しDMA転送
+    ; 変更するスプライトの番号(1スプライトで4byte消費するので、4の倍ごとに指定となる)    
     ;１バイト目 Ｙ座標 
     lda #$df
-    sta $2004 ; Y座標をレジスタにストアする
-    sta z_sprite_y
+    sta $0700 ; Y座標をレジスタにストアする
+    ;sta z_sprite_y
     
     ;２バイト目 タイルインデクス番号 （$1000から保存している何番目のスプライトを表示するか）
     lda #$00
-    sta $2004 ; 0をストアして0番のスプライトを指定する
+    sta $0701 ; 0をストアして0番のスプライトを指定する
     
     ;３バイト目　8ビットのビットフラグです。スプライトの属性を指定します。
-    sta $2004 ; 反転や優先順位は操作しないので、再度$00をストアする
+    sta $0702 ; 反転や優先順位は操作しないので、再度$00をストアする
     
     ;４バイト目　Ｘ座標 
     lda #$08
-    sta $2004 ; X座標をレジスタにストアする
-    sta z_sprite_x
+    sta $0703 ; X座標をレジスタにストアする
+    ;sta z_sprite_x
 
+    ldx #$04
     ldy #$3f ; スプライトは64個 未使用のスプライト63個の座標を移動して隠す
 spritehide:
     lda #$00
-    sta $2004 ; Y座標0
-    sta $2004 ; タイルのインデックス0
+    sta $0700, x ; Y座標0
+    inx
+    sta $0700, x ; タイルのインデックス0
+    inx
     ; スプライト属性指定
     ; bit7:垂直反転(１で反転)
     ; bit6:水平反転(１で反転)
@@ -79,9 +79,11 @@ spritehide:
     ; bit4-2 未使用?
     ; bit0-1:パレットの上位2bit
     lda #%00100000
-    sta $2004 ; スプライト属性 BGの後ろを指定
+    sta $0700, x ; スプライト属性 BGの後ろを指定
+    inx
     lda #$00
-    sta $2004 ; X座標0
+    sta $0700, x ; X座標0
+    inx
     dey
     bne spritehide
 
@@ -152,28 +154,28 @@ keycheck_loop:
     and z_controller_1
     beq keycheck1 ; 結果が0なら押されてない判定
     ; 押されたら減算
-    dec z_sprite_y
+    dec $0700
 
 keycheck1:
 ;DOWNKEYdown:
     lda #%00000100
     and z_controller_1
     beq keycheck2 ; 結果が0なら押されてない判定
-    inc z_sprite_y ; Y座標を1加算
+    inc $0700 ; Y座標を1加算
 
 keycheck2:
 ;LEFTKEYdown:
     lda #%00000010
     and z_controller_1
     beq keycheck3
-    dec z_sprite_x    ; X座標を1減算
+    dec $0703    ; X座標を1減算
     
 keycheck3:
 ;RIGHTKEYdown:
     lda #%00000001
     and z_controller_1
     beq keycheck4
-    inc z_sprite_x    ; X座標を1加算
+    inc $0703    ; X座標を1加算
 
 keycheck4:
     jmp infinityLoop
@@ -230,9 +232,10 @@ loop:
     ;lda $2002 ; VBlankが発生すると、$2002の7ビット目が1になります。
     ;bpl mainloop ; bit7が0の間は、mainLoopラベルの位置に飛んでループして待ち続けます。
     
-    inc z_frame ; タイマーカウントアップ ゼロページなので、下位アドレスを指定し高速アクセス
+    inc z_frame ; タイマーカウントアップ
 
     ; VBlank中に値を書き換えると、呼び出し元の処理が壊れるので一旦退避
+    ; これで様子見
     pha ; Aをスタックに
     txa ; X -> A
     pha ; A(=X)をスタックに
@@ -241,16 +244,19 @@ loop:
     php ; ステータスをスタックに
 
     ; VBlank間の処理
-    ; スプライト描画
-    lda #$00 ; $00(スプライトRAMのアドレスは8ビット長)をAにロード
-    sta $2003 ; AのスプライトRAMのアドレスをストア
-    lda z_sprite_y ; Y座標の値をロード
-    sta $2004     ; Y座標をレジスタにストアする
-    lda #$00     ; 0(10進数)をAにロード
-    sta $2004 ; 0をストアして0番のスプライトを指定する
-    sta $2004 ; 反転や優先順位は操作しないので、再度$00をストアする
-    lda z_sprite_x ; X座標の値をロード
-    sta $2004     ; X座標をレジスタにストアする
+    ; DMAによるスプライト描画
+    ;lda #$00 ; $00(スプライトRAMのアドレスは8ビット長)をAにロード
+    ;sta $2003 ; AのスプライトRAMのアドレスをストア
+    ;lda z_sprite_y ; Y座標の値をロード
+    ;sta $2004     ; Y座標をレジスタにストアする
+    ;lda #$00     ; 0(10進数)をAにロード
+    ;sta $2004 ; 0をストアして0番のスプライトを指定する
+    ;sta $2004 ; 反転や優先順位は操作しないので、再度$00をストアする
+    ;lda z_sprite_x ; X座標の値をロード
+    ;sta $2004     ; X座標をレジスタにストアする
+
+    lda #$07 ; スプライトデータは$0700-$07ff番地にしたので、先頭の上位ビット07を設定
+    sta $4014 ; スプライトDMAレジスタにAをストアして、スプライトデータをDMA転送する
 
     ; 退避した値を復帰
     ; 戻すときはスタックに積んだのと逆順で
@@ -321,8 +327,9 @@ map:
 z_frame: .byte $00 ; VBlank毎にカウントアップ
 z_frame_processed: .byte $00 ; 処理済フレーム
 z_controller_1: .byte $00 ; コントローラー1入力
-z_sprite_x: .byte $00 ; スプライトのx座標
-z_sprite_y: .byte $00 ; スプライトのx座標
+; スプライト用に確保した0x0700-ff領域に座標情報があるので不要になった
+; z_sprite_x: .byte $00 ; スプライトのx座標
+; z_sprite_y: .byte $00 ; スプライトのx座標
 z_chip: .byte $00   ; 処理中のマップ情報
 z_index: .byte $00  ; ループカウンタ値保存用
 ; スタック領域は$0100~$01ff
