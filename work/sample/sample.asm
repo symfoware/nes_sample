@@ -100,12 +100,67 @@ spritehide:
 
 ; 無限ループ
 infinityLoop:
-    lda $2002 ; VBlankが発生すると、$2002の7ビット目(N)が1になります。
-    bmi infinityLoop ; bit7(N)が1の間は、VBlank中なので処理をキャンセル
-    
-    ; ここで入力キーを拾う
-    
+    ; どうせ処理中に割り込まれるのでチェックは不要
+    ;lda $2002 ; VBlankが発生すると、$2002の7ビット目(N)が1になります。
+    ;bmi infinityLoop ; bit7(N)が1の間は、VBlank中なので処理をキャンセル
 
+    ; 処理済のフレームかチェック
+    lda z_frame
+    cmp z_frame_processed
+    ; z_frame = z_frame_processedならZ(ゼロフラグ)が1になる
+    ; 処理済フレームならスキップ
+    beq infinityLoop
+
+    ; 処理フレーム数を同期
+    sta z_frame_processed
+
+    ; コントローラー1入力取得
+    ; パッドI/Oレジスタの初期化($4016に1,0の順で書き込むのが作法)
+    lda #$01
+    sta $4016
+    lda #$00 
+    sta $4016
+
+    ; コントローラー1 パッド入力チェック(2コンは$4017)
+    lda $4016 ; Aボタン
+    lda $4016 ; Bボタン
+    lda $4016 ; Selectボタン
+    lda $4016 ; Startボタン
+    lda $4016 ; 上ボタン
+    and #$01     ; AND #1
+    bne UPKEYdown ; 0でないならば押されてるのでUPKeydownへジャンプ
+    
+    lda $4016 ; 下ボタン
+    and #$01     ; AND #1
+    bne DOWNKEYdown ; 0でないならば押されてるのでDOWNKeydownへジャンプ
+    lda $4016 ; 左ボタン
+    and #$01     ; AND #1
+    bne LEFTKEYdown ; 0でないならば押されてるのでLEFTKeydownへジャンプ
+    lda $4016 ; 右ボタン
+    and #$01     ; AND #1
+    bne RIGHTKEYdown ; 0でないならば押されてるのでRIGHTKeydownへジャンプ
+    jmp NOTHINGdown ; なにも押されていないならばNOTHINGdownへ
+
+UPKEYdown:
+    dec z_sprite_y    ; Y座標を1減算。ゼロページなので、以下のコードをこの１命令に短縮できる
+;    lda z_sprite_y ; Y座標をロード
+;    sbc #$01 ; 1減算する
+;    sta z_sprite_y ; Y座標をストア
+    jmp NOTHINGdown
+
+DOWNKEYdown:
+    inc z_sprite_y ; Y座標を1加算
+    jmp NOTHINGdown
+
+LEFTKEYdown:
+    dec z_sprite_x    ; X座標を1減算
+    jmp NOTHINGdown 
+
+RIGHTKEYdown:
+    inc z_sprite_x    ; X座標を1加算
+    ; この後NOTHINGdownなのでジャンプする必要無し
+
+NOTHINGdown:
     jmp infinityLoop
 
 .endproc
@@ -156,11 +211,19 @@ loop:
 .endproc
 
 .proc mainloop
-    ; ここでコントローラーからの入力を監視
+    ; NMIによる割り込み処理に変更したのでチェック不要
     ;lda $2002 ; VBlankが発生すると、$2002の7ビット目が1になります。
     ;bpl mainloop ; bit7が0の間は、mainLoopラベルの位置に飛んでループして待ち続けます。
-    ; タイマーカウントアップ
-    inc <z_timer
+    
+    inc z_frame ; タイマーカウントアップ ゼロページなので、下位アドレスを指定し高速アクセス
+
+    ; VBlank中に値を書き換えると、呼び出し元の処理が壊れるので一旦退避
+    pha ; Aをスタックに
+    txa ; X -> A
+    pha ; A(=X)をスタックに
+    tya ; Y -> A
+    pha ; A(=Y)をスタックに
+    php ; ステータスをスタックに
 
     ; VBlank間の処理
     ; スプライト描画
@@ -174,52 +237,15 @@ loop:
     lda z_sprite_x ; X座標の値をロード
     sta $2004     ; X座標をレジスタにストアする
 
-    ; パッドI/Oレジスタの初期化($4016に1,0の順で書き込むのが作法)
-    lda #$01
-    sta $4016
-    lda #$00 
-    sta $4016
-
-    ; コントローラー1 パッド入力チェック(2コンは$4017)
-    lda $4016 ; Aボタンをスキップ
-    lda $4016 ; Bボタンをスキップ
-    lda $4016 ; Selectボタンをスキップ
-    lda $4016 ; Startボタンをスキップ
-    lda $4016 ; 上ボタン
-    and #$01     ; AND #1
-    bne UPKEYdown ; 0でないならば押されてるのでUPKeydownへジャンプ
+    ; 退避した値を復帰
+    ; 戻すときはスタックに積んだのと逆順で
+    plp ; ステータス
+    pla
+    tay ; Y
+    pla
+    tax ; X
+    pla ; A
     
-    lda $4016 ; 下ボタン
-    and #$01     ; AND #1
-    bne DOWNKEYdown ; 0でないならば押されてるのでDOWNKeydownへジャンプ
-    lda $4016 ; 左ボタン
-    and #$01     ; AND #1
-    bne LEFTKEYdown ; 0でないならば押されてるのでLEFTKeydownへジャンプ
-    lda $4016 ; 右ボタン
-    and #$01     ; AND #1
-    bne RIGHTKEYdown ; 0でないならば押されてるのでRIGHTKeydownへジャンプ
-    jmp NOTHINGdown ; なにも押されていないならばNOTHINGdownへ
-
-UPKEYdown:
-    dec z_sprite_y    ; Y座標を1減算。ゼロページなので、以下のコードをこの１命令に短縮できる
-;    lda z_sprite_y ; Y座標をロード
-;    sbc #$01 ; 1減算する
-;    sta z_sprite_y ; Y座標をストア
-    jmp NOTHINGdown
-
-DOWNKEYdown:
-    inc z_sprite_y ; Y座標を1加算
-    jmp NOTHINGdown
-
-LEFTKEYdown:
-    dec z_sprite_x    ; X座標を1減算
-    jmp NOTHINGdown 
-
-RIGHTKEYdown:
-    inc z_sprite_x    ; X座標を1加算
-    ; この後NOTHINGdownなのでジャンプする必要無し
-
-NOTHINGdown:
     rti ; VBlank割り込みから復帰 ここでは何も行わず、後の流れのrtiで処理しても良さそう
 .endproc
 
@@ -277,7 +303,10 @@ map:
 
 ; 変数定義
 .org $0000 ; ゼロページ
-z_timer: .byte $00 ; VBlank毎にカウントアップ
+z_frame: .byte $00 ; VBlank毎にカウントアップ
+z_frame_processed: .byte $00 ; 処理済フレーム
+z_x: .byte $00 ; NMI復帰用
+z_y: .byte $00
 z_sprite_x: .byte $00 ; スプライトのx座標
 z_sprite_y: .byte $00 ; スプライトのx座標
 z_chip: .byte $00   ; 処理中のマップ情報
