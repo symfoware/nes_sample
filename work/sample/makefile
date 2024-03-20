@@ -22,5 +22,4 @@ all :	$(OBJECTS) $(LIBRARIES)
 	$(CL65) -t none -o $*.o -c $*.asm
 
 clean :
-	del *.smc
-	del *.o
+	rm *.o
