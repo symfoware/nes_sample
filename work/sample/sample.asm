@@ -13,10 +13,11 @@
 
 .segment "STARTUP" ; "STARTUP"はcfgのSEGMENTSで定義
 ; リセット割り込み
-.proc Reset
-    sei
+.proc reset
+    sei ; 割り込み不可
+    cld ; デシマルモードクリア(作法)
     ldx #$ff
-    txs
+    txs ; スタックポインタ初期化
 
 ; スクリーンオフ
     lda #$00
@@ -52,7 +53,7 @@ copypal:
     ;１バイト目 Ｙ座標 
     lda #$df
     sta $2004 ; Y座標をレジスタにストアする
-    sta v_sprite_y
+    sta z_sprite_y
     
     ;２バイト目 タイルインデクス番号 （$1000から保存している何番目のスプライトを表示するか）
     lda #$00
@@ -64,7 +65,7 @@ copypal:
     ;４バイト目　Ｘ座標 
     lda #$08
     sta $2004 ; X座標をレジスタにストアする
-    sta v_sprite_x
+    sta z_sprite_x
 
     ldy #$3f ; スプライトは64個 未使用のスプライト63個の座標を移動して隠す
 spritehide:
@@ -92,27 +93,85 @@ spritehide:
     sta $2005
 
 ; スクリーンオン
-    lda #$08 ; 00001000 BGのキャラクタテーブル番号を1に
+    lda #%10001000 ; NMI実行あり,BGのキャラクタテーブル番号を1に
     sta $2000
-    lda #$1e ; 00011110 スプライト表示,BG表示,左端8x8のスプライト表示,左端8x8のBG表示
+    lda #%00011110 ; スプライト表示,BG表示,左端8x8のスプライト表示,左端8x8のBG表示
     sta $2001
 
 ; 無限ループ
-mainloop:
+infinityLoop:
+    lda $2002 ; VBlankが発生すると、$2002の7ビット目(N)が1になります。
+    bmi infinityLoop ; bit7(N)が1の間は、VBlank中なので処理をキャンセル
+    
+    ; ここで入力キーを拾う
+    
+
+    jmp infinityLoop
+
+.endproc
+
+; 関数定義テスト
+.proc drawchip
+    ; 書き込み開始座標指定
+    lda #$20
+    sta $2006
+    lda #$00
+    sta $2006
+    
+    ; ループカウンタ
+    ldx #$00
+    ldy #$78
+maploop:
+    ; マップ情報を読み込みメモリーに退避
+    lda map, x
+    sta z_chip
+    ; サブルーチンでyを書き換えるので、現在のy値をメモリーに退避
+    sty z_index
+    ; z_chipを情報を解析して書き込み
+    jmp draw8chip
+draw8chipr:
+    ; yの値が書き換わっているのでメモリーから復帰
+    ldy z_index
+    inx
+    dey
+    bne maploop
+
+    rts
+
+; map情報から画面表示
+draw8chip:
+    ; 1bit単位で0なら通路、1なら壁)
+    ldy #$08
+loop:
+    ; map情報の断片をロード
+    lda z_chip
+    ; bit演算した結果を出力BGデータでで 0は空白、1は塗りつぶしのパネルを設定している
+    and #$01
+    sta $2007
+    ; 右にビットシフト
+    lsr z_chip
+    dey
+    bne loop
+    jmp draw8chipr ; ルーチンが近い場合はjmpしてみるテスト
+.endproc
+
+.proc mainloop
     ; ここでコントローラーからの入力を監視
-    lda $2002 ; VBlankが発生すると、$2002の7ビット目が1になります。
-    bpl mainloop ; bit7が0の間は、mainLoopラベルの位置に飛んでループして待ち続けます。
+    ;lda $2002 ; VBlankが発生すると、$2002の7ビット目が1になります。
+    ;bpl mainloop ; bit7が0の間は、mainLoopラベルの位置に飛んでループして待ち続けます。
+    ; タイマーカウントアップ
+    inc <z_timer
 
     ; VBlank間の処理
     ; スプライト描画
     lda #$00 ; $00(スプライトRAMのアドレスは8ビット長)をAにロード
     sta $2003 ; AのスプライトRAMのアドレスをストア
-    lda v_sprite_y ; Y座標の値をロード
+    lda z_sprite_y ; Y座標の値をロード
     sta $2004     ; Y座標をレジスタにストアする
     lda #$00     ; 0(10進数)をAにロード
     sta $2004 ; 0をストアして0番のスプライトを指定する
     sta $2004 ; 反転や優先順位は操作しないので、再度$00をストアする
-    lda v_sprite_x ; X座標の値をロード
+    lda z_sprite_x ; X座標の値をロード
     sta $2004     ; X座標をレジスタにストアする
 
     ; パッドI/Oレジスタの初期化($4016に1,0の順で書き込むのが作法)
@@ -142,72 +201,31 @@ mainloop:
     jmp NOTHINGdown ; なにも押されていないならばNOTHINGdownへ
 
 UPKEYdown:
-    dec v_sprite_y    ; Y座標を1減算。ゼロページなので、以下のコードをこの１命令に短縮できる
-;    lda v_sprite_y ; Y座標をロード
+    dec z_sprite_y    ; Y座標を1減算。ゼロページなので、以下のコードをこの１命令に短縮できる
+;    lda z_sprite_y ; Y座標をロード
 ;    sbc #$01 ; 1減算する
-;    sta v_sprite_y ; Y座標をストア
+;    sta z_sprite_y ; Y座標をストア
     jmp NOTHINGdown
 
 DOWNKEYdown:
-    inc v_sprite_y ; Y座標を1加算
+    inc z_sprite_y ; Y座標を1加算
     jmp NOTHINGdown
 
 LEFTKEYdown:
-    dec v_sprite_x    ; X座標を1減算
+    dec z_sprite_x    ; X座標を1減算
     jmp NOTHINGdown 
 
 RIGHTKEYdown:
-    inc v_sprite_x    ; X座標を1加算
+    inc z_sprite_x    ; X座標を1加算
     ; この後NOTHINGdownなのでジャンプする必要無し
 
 NOTHINGdown:
-    jmp mainloop
+    rti ; VBlank割り込みから復帰 ここでは何も行わず、後の流れのrtiで処理しても良さそう
+.endproc
 
-
-; 関数定義テスト
-drawchip:
-    ; 書き込み開始座標指定
-    lda #$20
-    sta $2006
-    lda #$00
-    sta $2006
-    
-    ; ループカウンタ
-    ldx #$00
-    ldy #$78
-maploop:
-    ; マップ情報を読み込みメモリーに退避
-    lda map, x
-    sta v_chip
-    ; サブルーチンでyを書き換えるので、現在のy値をメモリーに退避
-    sty v_index
-    ; v_chipを情報を解析して書き込み
-    jmp draw8chip
-draw8chipr:
-    ; yの値が書き換わっているのでメモリーから復帰
-    ldy v_index
-    inx
-    dey
-    bne maploop
-
-    rts
-
-; map情報から画面表示
-draw8chip:
-    ; 1bit単位で0なら通路、1なら壁)
-    ldy #$08
-loop:
-    ; map情報の断片をロード
-    lda v_chip
-    ; bit演算した結果を出力BGデータでで 0は空白、1は塗りつぶしのパネルを設定している
-    and #$01
-    sta $2007
-    ; 右にビットシフト
-    lsr v_chip
-    dey
-    bne loop
-    jmp draw8chipr ; ルーチンが近い場合はjmpしてみるテスト
-
+; ハード、ソフトウェア割り込み
+.proc irq
+    rti
 .endproc
 
 ; パレットテーブル
@@ -259,16 +277,17 @@ map:
 
 ; 変数定義
 .org $0000 ; ゼロページ
-v_chip: .byte $00   ; 処理中のマップ情報
-v_index: .byte $00  ; ループカウンタ値保存用
-v_sprite_x: .byte $00 ; スプライトのx座標
-v_sprite_y: .byte $00 ; スプライトのx座標
+z_timer: .byte $00 ; VBlank毎にカウントアップ
+z_sprite_x: .byte $00 ; スプライトのx座標
+z_sprite_y: .byte $00 ; スプライトのx座標
+z_chip: .byte $00   ; 処理中のマップ情報
+z_index: .byte $00  ; ループカウンタ値保存用
 ; スタック領域は$0100~$01ff
 
 .segment "VECINFO"
-    .word $0000
-    .word Reset
-    .word $0000
+    .word mainloop ; VBlank割り込み時に実行するルーチン
+    .word reset ; リセット割り込み
+    .word irq ; ハードウェア割り込みとソフトウェア割り込み
 
 ; パターンテーブル
 .segment "CHARS"
