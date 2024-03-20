@@ -121,46 +121,61 @@ infinityLoop:
     lda #$00 
     sta $4016
 
+    ; Aボタンから右ボタンまで取得
+    ldx #$08
+keycheck_loop:
+    asl z_controller_1 ; 左シフト
     ; コントローラー1 パッド入力チェック(2コンは$4017)
-    lda $4016 ; Aボタン
-    lda $4016 ; Bボタン
-    lda $4016 ; Selectボタン
-    lda $4016 ; Startボタン
-    lda $4016 ; 上ボタン
-    and #$01     ; AND #1
-    bne UPKEYdown ; 0でないならば押されてるのでUPKeydownへジャンプ
+    lda $4016
+    and #01 ; 0bit目がフラグ
+    ora z_controller_1 ; ORを取って
+    sta z_controller_1 ; 保存
+    dex
+    bne keycheck_loop
     
-    lda $4016 ; 下ボタン
-    and #$01     ; AND #1
-    bne DOWNKEYdown ; 0でないならば押されてるのでDOWNKeydownへジャンプ
-    lda $4016 ; 左ボタン
-    and #$01     ; AND #1
-    bne LEFTKEYdown ; 0でないならば押されてるのでLEFTKeydownへジャンプ
-    lda $4016 ; 右ボタン
-    and #$01     ; AND #1
-    bne RIGHTKEYdown ; 0でないならば押されてるのでRIGHTKeydownへジャンプ
-    jmp NOTHINGdown ; なにも押されていないならばNOTHINGdownへ
+    lda #$00
+    cmp z_controller_1
+    beq infinityLoop ; なにも押されていないならばループに戻る
+    
+    ; bit:キー
+    ; 7:A
+    ; 6:B
+    ; 5:SELECT
+    ; 4:START
+    ; 3:UP
+    ; 2:DOWN
+    ; 1:LEFT
+    ; 0:RIGHT
 
-UPKEYdown:
-    dec z_sprite_y    ; Y座標を1減算。ゼロページなので、以下のコードをこの１命令に短縮できる
-;    lda z_sprite_y ; Y座標をロード
-;    sbc #$01 ; 1減算する
-;    sta z_sprite_y ; Y座標をストア
-    jmp NOTHINGdown
+;UPKEYdown
+    lda #%00001000
+    and z_controller_1
+    beq keycheck1 ; 結果が0なら押されてない判定
+    ; 押されたら減算
+    dec z_sprite_y
 
-DOWNKEYdown:
+keycheck1:
+;DOWNKEYdown:
+    lda #%00000100
+    and z_controller_1
+    beq keycheck2 ; 結果が0なら押されてない判定
     inc z_sprite_y ; Y座標を1加算
-    jmp NOTHINGdown
 
-LEFTKEYdown:
+keycheck2:
+;LEFTKEYdown:
+    lda #%00000010
+    and z_controller_1
+    beq keycheck3
     dec z_sprite_x    ; X座標を1減算
-    jmp NOTHINGdown 
-
-RIGHTKEYdown:
+    
+keycheck3:
+;RIGHTKEYdown:
+    lda #%00000001
+    and z_controller_1
+    beq keycheck4
     inc z_sprite_x    ; X座標を1加算
-    ; この後NOTHINGdownなのでジャンプする必要無し
 
-NOTHINGdown:
+keycheck4:
     jmp infinityLoop
 
 .endproc
@@ -305,8 +320,7 @@ map:
 .org $0000 ; ゼロページ
 z_frame: .byte $00 ; VBlank毎にカウントアップ
 z_frame_processed: .byte $00 ; 処理済フレーム
-z_x: .byte $00 ; NMI復帰用
-z_y: .byte $00
+z_controller_1: .byte $00 ; コントローラー1入力
 z_sprite_x: .byte $00 ; スプライトのx座標
 z_sprite_y: .byte $00 ; スプライトのx座標
 z_chip: .byte $00   ; 処理中のマップ情報
