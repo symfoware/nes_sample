@@ -126,19 +126,18 @@ infinityLoop:
     ; Aボタンから右ボタンまで取得
     ldx #$08
 keycheck_loop:
-    asl z_controller_1 ; 左シフト
     ; コントローラー1 パッド入力チェック(2コンは$4017)
     lda $4016
-    and #01 ; 0bit目がフラグ
-    ora z_controller_1 ; ORを取って
-    sta z_controller_1 ; 保存
+    lsr ; 論理右シフト Aの0bit目がCに設定される
+    rol z_controller_1 ; Cの値を0bit目に詰めつつ左ローテート
     dex
-    bne keycheck_loop
+    bne keycheck_loop ; 8個読み取るまでループ
     
     lda #$00
     cmp z_controller_1
     beq infinityLoop ; なにも押されていないならばループに戻る
     
+    ; 以降変更なし
     ; bit:キー
     ; 7:A
     ; 6:B
