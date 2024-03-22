@@ -100,6 +100,9 @@ spritehide:
     lda #%00011110 ; スプライト表示,BG表示,左端8x8のスプライト表示,左端8x8のBG表示
     sta $2001
 
+
+
+; ---------------------------------------------------------------------------------
 ; 無限ループ
 infinityLoop:
     ; どうせ処理中に割り込まれるのでチェックは不要
@@ -107,14 +110,9 @@ infinityLoop:
     ;bmi infinityLoop ; bit7(N)が1の間は、VBlank中なので処理をキャンセル
 
     ; 処理済のフレームかチェック
-    lda z_frame
+    lda #$01
     cmp z_frame_processed
-    ; z_frame = z_frame_processedならZ(ゼロフラグ)が1になる
-    ; 処理済フレームならスキップ
-    beq infinityLoop
-
-    ; 処理フレーム数を同期
-    sta z_frame_processed
+    beq infinityLoop ; 1なら処理済
 
     ; コントローラー1入力取得
     ; パッドI/Oレジスタの初期化($4016に1,0の順で書き込むのが作法)
@@ -133,9 +131,9 @@ keycheck_loop:
     dex
     bne keycheck_loop ; 8個読み取るまでループ
     
-    lda #$00
-    cmp z_controller_1
-    beq infinityLoop ; なにも押されていないならばループに戻る
+;    lda #$00
+;    cmp z_controller_1
+;    beq infinityLoop ; なにも押されていないならばループに戻る
     
     ; 以降変更なし
     ; bit:キー
@@ -177,6 +175,11 @@ keycheck3:
     inc $0703    ; X座標を1加算
 
 keycheck4:
+
+    ; 処理済と設定
+    lda #$01
+    sta z_frame_processed
+
     jmp infinityLoop
 
 .endproc
@@ -188,8 +191,6 @@ keycheck4:
     ; NMIによる割り込み処理に変更したのでチェック不要
     ;lda $2002 ; VBlankが発生すると、$2002の7ビット目が1になります。
     ;bpl mainloop ; bit7が0の間は、mainLoopラベルの位置に飛んでループして待ち続けます。
-    
-    inc z_frame ; タイマーカウントアップ
 
     ; VBlank中に値を書き換えると、呼び出し元の処理が壊れるので一旦退避
     ; これで様子見
@@ -199,6 +200,12 @@ keycheck4:
     tya ; Y -> A
     pha ; A(=Y)をスタックに
     php ; ステータスをスタックに
+
+    inc z_frame ; タイマーカウントアップ
+    lda #$01
+    cmp z_frame_processed
+    bne bvlank_end ; 1でなければ処理するものがない
+    
 
     ; VBlank間の処理
     ; DMAによるスプライト描画
@@ -214,6 +221,13 @@ keycheck4:
 
     lda #$07 ; スプライトデータは$0700-$07ff番地にしたので、先頭の上位ビット07を設定
     sta $4014 ; スプライトDMAレジスタにAをストアして、スプライトデータをDMA転送する
+
+    ; 処理した
+    lda #$00
+    sta z_frame_processed
+
+
+bvlank_end:
 
     ; 退避した値を復帰
     ; 戻すときはスタックに積んだのと逆順で
