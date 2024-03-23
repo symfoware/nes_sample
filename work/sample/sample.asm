@@ -46,7 +46,7 @@ copypal:
 
 ; スプライトの初期化
     ldx #$00
-    ldy #$40 ; スプライトは64個 未使用のスプライト63個の座標を移動して隠す
+    ldy #$40 ; スプライトは64個 一旦全てを隠す
 
 spritehide:
     lda #$ff
@@ -69,11 +69,12 @@ spritehide:
     dey
     bne spritehide
 
+
 ; スプライト情報表示
     ; $0x0700から0x07ffを使用しDMA転送
     ; 変更するスプライトの番号(1スプライトで4byte消費するので、4の倍ごとに指定となる)    
     ;１バイト目 Ｙ座標 
-    lda #$cf
+    lda #$d0
     sta $0700 ; Y座標をレジスタにストアする
     
     ;２バイト目 タイルインデクス番号 （$1000から保存している何番目のスプライトを表示するか）
@@ -90,7 +91,7 @@ spritehide:
 
 
 ; -----
-    lda #$cf
+    lda #$d0
     sta $0704 ; Y座標をレジスタにストアする
     
     ;２バイト目 タイルインデクス番号 （$1000から保存している何番目のスプライトを表示するか）
@@ -106,7 +107,7 @@ spritehide:
     sta $0707 ; X座標をレジスタにストアする
 
 ; -----
-    lda #$d7
+    lda #$d8
     sta $0708 ; Y座標をレジスタにストアする
     
     ;２バイト目 タイルインデクス番号 （$1000から保存している何番目のスプライトを表示するか）
@@ -114,7 +115,7 @@ spritehide:
     sta $0709 ; 0をストアして0番のスプライトを指定する
     
     ;３バイト目　8ビットのビットフラグです。スプライトの属性を指定します。
-    lda #$00
+    lda #$10
     sta $070a ; 反転や優先順位は操作しないので、再度$00をストアする
     
     ;４バイト目　Ｘ座標 
@@ -122,7 +123,7 @@ spritehide:
     sta $070b ; X座標をレジスタにストアする
 
 ; -----
-    lda #$d7
+    lda #$d8
     sta $070c ; Y座標をレジスタにストアする
     
     ;２バイト目 タイルインデクス番号 （$1000から保存している何番目のスプライトを表示するか）
@@ -161,11 +162,40 @@ infinityLoop:
     ;lda $2002 ; VBlankが発生すると、$2002の7ビット目(N)が1になります。
     ;bmi infinityLoop ; bit7(N)が1の間は、VBlank中なので処理をキャンセル
 
+    ; ゴール判定
+    lda #$00
+    cmp z_goal
+    bne infinityLoop ; ゴールしていたら処理終了
+
+
     ; 処理済のフレームかチェック
     lda #$01
     bit z_frame_processed
     bne infinityLoop ; 1なら処理済
 
+    lda #$01
+    sta z_auto_move ; 自動移動中かの判定
+
+    ; きりの良いところまで移動するまで待機
+    ; ストライプ左上の座標で判断
+    lda $0700 ; y座標
+    ; 0-3bitが0ならキリがよい
+    and #%00001111
+    bne spritemove
+
+    lda $0703 ; x座標
+    ; 0-3bitで0ならキリがよい
+    and #%00001111
+    bne spritemove
+
+    lda #$00
+    sta z_auto_move ; 自動移動中かの判定
+
+    ; ゴールしているかチェック
+    jsr is_goal
+
+
+    ;lda $0703 ; x座標
     ; コントローラー1入力取得
     ; パッドI/Oレジスタの初期化($4016に1,0の順で書き込むのが作法)
     lda #$01
@@ -183,7 +213,6 @@ keycheck_loop:
     dex
     bne keycheck_loop ; 8個読み取るまでループ
     
-    lda #$00
     cmp z_controller_1
     beq infinityLoop ; なにも押されていないならばループに戻る
     
@@ -198,41 +227,268 @@ keycheck_loop:
     ; 1:LEFT
     ; 0:RIGHT
 
+spritemove:
 ;UPKEYdown
     lda #%00001000
     and z_controller_1
     beq keycheck1 ; 結果が0なら押されてない判定
+    ; 上に行けるかチェック
+    jsr check_move_up
+    bcs keycheckend
+
     ; 押されたら減算
     dec $0700
+    dec $0704
+    dec $0708
+    dec $070c
+    jmp keycheckend
 
 keycheck1:
 ;DOWNKEYdown:
     lda #%00000100
     and z_controller_1
     beq keycheck2 ; 結果が0なら押されてない判定
+    ; 下に行けるかチェック
+    jsr check_move_down
+    bcs keycheckend
+
     inc $0700 ; Y座標を1加算
+    inc $0704
+    inc $0708
+    inc $070c
+    jmp keycheckend
 
 keycheck2:
 ;LEFTKEYdown:
     lda #%00000010
     and z_controller_1
     beq keycheck3
+    jsr check_move_left
+    bcs keycheckend
+
     dec $0703    ; X座標を1減算
+    dec $0707
+    dec $070b
+    dec $070f
+    jmp keycheckend
     
 keycheck3:
 ;RIGHTKEYdown:
     lda #%00000001
     and z_controller_1
-    beq keycheck4
-    inc $0703    ; X座標を1加算
+    beq keycheckend
+    jsr check_move_right
+    bcs keycheckend
 
-keycheck4:
+    inc $0703    ; X座標を1加算
+    inc $0707
+    inc $070b
+    inc $070f
+
+keycheckend:
 
     ; 処理済と設定
     lda #$01
     sta z_frame_processed
 
     jmp infinityLoop
+
+
+; 上に行けるか判定
+check_move_up:
+    clc
+    lda z_auto_move
+    bne check_end
+
+    ; 現在のxy座標を設定
+    jsr get_xy
+
+    ; mapデータから移動後のオブジェクトを取得
+    ; 対象データがあるのは、x%2 + y*2
+    ; y*2はyを左シフトして得る
+    ; x%2はand 01をすればすればよい
+    lda z_y
+    ; 一つ上に移動
+    sec ; sbcする前に設定必須
+    sbc #$01
+    sta z_y ; 移動後の座標を設定
+
+    jsr check_move
+    rts
+
+
+; 下に行けるか判定
+check_move_down:
+    clc
+    lda z_auto_move
+    bne check_end
+
+    ; 現在のxy座標を設定
+    jsr get_xy
+
+    lda z_y
+    ; 一つ下に移動
+    clc ; adcする前に設定必須
+    adc #$01
+    sta z_y ; 移動後の座標を設定
+
+    jsr check_move
+    rts
+
+
+; 左に行けるか判定
+check_move_left:
+    clc
+    lda z_auto_move
+    bne check_end
+
+    ; 現在のxy座標を設定
+    jsr get_xy
+
+    ; mapデータから移動後のオブジェクトを取得
+    ; 対象データがあるのは、x%2 + y*2
+    ; y*2はyを左シフトして得る
+    ; x%2はand 01をすればすればよい
+    lda z_x
+    ; 一つ左に移動
+    sec ; sbcする前に設定必須
+    sbc #$01
+    sta z_x ; 移動後の座標を設定
+
+    jsr check_move
+    rts
+
+; 右に行けるか判定
+check_move_right:
+    clc
+    lda z_auto_move
+    bne check_end
+
+    ; 現在のxy座標を設定
+    jsr get_xy
+
+    lda z_x
+    ; 一つ下に移動
+    clc ; adcする前に設定必須
+    adc #$01
+    sta z_x ; 移動後の座標を設定
+
+    jsr check_move
+    rts
+
+check_move:
+
+    ; 移動後のY座標
+    lda z_y
+    sta z_tmp
+
+    ; 対象データがあるマップ情報を取得
+    lda z_x
+    lsr
+    lsr
+    lsr
+    lsr
+    rol z_tmp
+    
+    ; x座標のデータを取得
+    lda z_x
+    and #%00000111 ; 8bit毎に2行目に行くのでマスク
+    tay
+    iny
+
+    ; マップ情報を取得
+    ldx z_tmp
+    lda map, x
+    
+
+loop:
+    asl
+    dey
+    bne loop
+
+check_end:
+    rts
+
+
+
+get_xy:
+    ; y
+    lda $0700
+    ; 上位4bit
+    lsr
+    lsr
+    lsr
+    lsr
+    sta z_y ; y座標
+
+    ; x
+    lda $0703
+    lsr
+    lsr
+    lsr
+    lsr
+    sta z_x ; x座標
+    rts
+
+
+; ゴールしたかチェック
+is_goal:
+    jsr get_xy
+    ldx z_x
+    cpx #$0e
+    ;cpx #$01
+    beq check_y
+    rts
+
+check_y:
+    ldx z_y
+    cpx #$01
+    ;cpx #$0c
+    beq set_goal
+    rts
+
+set_goal:
+    lda #$01
+    sta z_goal
+    sta z_frame_processed
+    ; ゴール部分を書き込み
+    lda $2002
+    lda #$21
+    sta $2006
+    lda #$8c
+    sta $2006
+
+    ldx #$10
+    ldy #$08
+goal_upper:
+    txa
+    sta $2007
+    inx
+    dey
+    bne goal_upper
+
+    ; ゴール下段
+    lda $2002
+    lda #$21
+    sta $2006
+    lda #$ac
+    sta $2006
+
+    ldx #$20
+    ldy #$08
+goal_lower:
+    txa
+    sta $2007
+    inx
+    dey
+    bne goal_lower
+
+    lda #$00
+    sta $2005
+    sta $2005
+
+    rts
+
 
 .endproc
 
@@ -253,50 +509,58 @@ maploop:
     ; サブルーチンでyを書き換えるので、現在のy値をメモリーに退避
     sty z_index
 
-    ; マップ情報を読み込みメモリーに退避
+    ; マップ情報を読み込みメモリーに退避(16-y行目左側)
     lda map, x
     sta z_chip
     ; z_chipを情報を解析して書き込み
     jsr drawChipUp
     inx
+
+    ; マップ情報を読み込みメモリーに退避(16-y行目右側)
     lda map, x
     sta z_chip
-    ; サブルーチンでyを書き換えるので、現在のy値をメモリーに退避
-    ;sty z_index
     ; z_chipを情報を解析して書き込み
     jsr drawChipUp
-    dex
+    dex ; 一つ前に戻す
     
     ; マップ情報を読み込みメモリーに退避
-    lda map, x
+    lda map, x ; (16-y行目左側)
     sta z_chip
-    ; z_chipを情報を解析して書き込み
     jsr drawChipLow
     inx
-    lda map, x
+    
+    lda map, x ; (16-y行目右側)
     sta z_chip
-    ; サブルーチンでyを書き換えるので、現在のy値をメモリーに退避
-    ;sty z_index
-    ; z_chipを情報を解析して書き込み
     jsr drawChipLow
-    dex
 
-
-
-    ;lda map, x
-    ;sta z_chip
-    ;jsr drawChipLow
-draw8chipr:
     ; yの値が書き換わっているのでメモリーから復帰
     ldy z_index
-    inx
     inx
     dey
     bne maploop
 
+    ; ゴール部分を書き込み
+    lda #$20
+    sta $2006
+    lda #$5c
+    sta $2006
+    lda #$08
+    sta $2007
+    lda #$09
+    sta $2007
+
+    lda #$20
+    sta $2006
+    lda #$7c
+    sta $2006
+    lda #$0a
+    sta $2007
+    lda #$0b
+    sta $2007
     rts
 
-; map情報から画面表示
+
+; map情報から画面表示(16x16の上半分)
 drawChipUp:
     ; 1bit単位で0なら通路、1なら壁)
     ldy #$08
@@ -331,7 +595,7 @@ finup:
 
 
 
-; map情報から画面表示
+; map情報から画面表示(16x16の下半分)
 drawChipLow:
     ; 1bit単位で0なら通路、1なら壁)
     ldy #$08
@@ -431,18 +695,18 @@ map:
     .byte %11111111, %11111111
     .byte %10000000, %00000001
     .byte %10111111, %11111111
+    .byte %10000000, %00000001
+    .byte %11111111, %11111101
+    .byte %10000000, %00000101
+    .byte %10111111, %11110101
+    .byte %10100000, %00010101
+    .byte %10101111, %11110101
+    .byte %10100000, %00000101
+    .byte %10111111, %11111101
+    .byte %10000000, %00000001
     .byte %10111111, %11111111
-    .byte %10111111, %11111111
-    .byte %10111111, %11111111
-    .byte %10111111, %11111111
-    .byte %10111111, %11111111
-    .byte %10111111, %11111111
-    .byte %10111111, %11111111
-    .byte %10111111, %11111111
-    .byte %10111111, %11111111
-    .byte %10111111, %11111111
-    .byte %10111111, %11111111
-    .byte %11111111, %11111110
+    .byte %10000000, %00000001
+    .byte %11111111, %11111111
 
 ;.incbin "map.dat"
 
@@ -451,11 +715,14 @@ map:
 z_frame: .byte $00 ; VBlank毎にカウントアップ
 z_frame_processed: .byte $00 ; 処理済フレーム
 z_controller_1: .byte $00 ; コントローラー1入力
-; スプライト用に確保した0x0700-ff領域に座標情報があるので不要になった
-; z_sprite_x: .byte $00 ; スプライトのx座標
-; z_sprite_y: .byte $00 ; スプライトのx座標
 z_chip: .byte $00   ; 処理中のマップ情報
 z_index: .byte $00  ; ループカウンタ値保存用
+z_x: .byte $00
+z_y: .byte $00
+z_auto_move: .byte $00
+z_goal: .byte $00
+z_tmp: .byte $00
+z_debug: .byte $00
 ; スタック領域は$0100~$01ff
 
 
