@@ -44,34 +44,39 @@ copypal:
 	dey
 	bne	copypal
 
-; 初期値C(ascii $43)を指定
-    lda #$43
-    sta $0000 ;初期値を$0000に保存
-    sta $0001 ;初期値を$0001に保存(比較用)
+; 画面描画
+	ldx #$00
+	ldy #$10
+	lda $2002
+	lda	#$21
+	sta	$2006
+	lda	#$c9
+	sta	$2006
+write_str:
+	lda string, x
+	sta	$2007
+	inx
+	dey
+	bne write_str
 
-	lda #%01101010	;鳴らしている周波数を0002に設定
-	sta $0002
-
-	ldy #$00		;カウンターリセット
-
-; 三角波チャンネル有効化
-	lda #%00001111	; bit 2を1にし三角波チャンネル1有効
-	sta $4015		; データ書き込み
-
-	lda #%11111111	; リニアカウンター 1:使用
-	sta $4008
-
-	lda $0002		; 周波数設定 計算式は矩形波と同様
-	sta $400a
-
-	lda #%11111000	; 音の長さと周波数の上位3ビット この例では周波数上位は000固定とした(高い音の場合は基本0になる)
-	sta $400b
-
+;カーソル
+	lda	#$21
+	sta	$2006
+	lda	#$f8
+	sta	$2006
+	; x座標保存
+	sta z_coursor
+	lda #$20
+	sta	$2007
 
 ; スクロール設定
 	lda	#$00
 	sta	$2005
 	sta	$2005
+
+; ノイズ使用
+	lda #%00001000
+	sta $4015
 
 ; スクリーンオン
     lda    #%10001000    ; 最初のビットを1にして、VBlank時にNMIを実行する
@@ -85,14 +90,17 @@ infinityLoop:
 .endproc
 
 .proc mainloop
+; 連続で反応するので、ある程度入力を間引く
+	inc z_counter
+	lda z_counter
+	cmp #$0f
+	bcc end
 
-	iny				; yをインクリメント
-	cpy #$f			; yと#$f(適当な数値)と比較
-	bcc end		; yが#$f以下なら入力キャンセル
-
-	ldy #$00		;カウンターリセット
+; カウンターリセット
+	lda #$00
+	sta z_counter
 	
-
+; 入力受付
 ; パッドI/Oレジスタ リセット
     lda #$01
     sta $4016
@@ -100,134 +108,291 @@ infinityLoop:
     sta $4016
 
 ; パッド入力チェック
-    lda $4016 ; Aボタンをスキップ
-    lda $4016 ; Bボタンをスキップ
+    lda $4016 ; Aボタン
+	and #$01
+	bne akey_down
+    
+	lda $4016 ; Bボタンをスキップ
     lda $4016 ; Selectボタンをスキップ
     lda $4016 ; Startボタンをスキップ
 	
     lda $4016 ; 上ボタン
-    and #1     ; AND #1
+    and #$01     ; AND #1
     bne upkey_down ; 0でないならば押されてるのでupkey_downへジャンプ
     
     lda $4016 ; 下ボタン
-    and #1     ; AND #1
+    and #$01     ; AND #1
     bne downkey_down ; 0でないならば押されてるのでdownkey_downへジャンプ
 
+    lda $4016 ; 左ボタン
+    and #$01     ; AND #1
+    bne leftkey_down
+
+    lda $4016 ; 左ボタン
+    and #$01     ; AND #1
+    bne rightkey_down
+
 	jmp end
 
-; 上キー入力
+; Aキー入力
+akey_down:
+	; 音を出す
+	jsr sound
+	jmp end
+
+; 上下キー入力
 upkey_down:
-	inc $0000	; 1加算
-	lda $0000
-	cmp #$48	; $48(文字H以上)ならAに戻す
-	bcs reset_a
-
-	jmp end
-    
 downkey_down:
-	dec $0000	; 1減算
-	lda $0000
-	cmp #$41	; $48(文字H以上)ならAに戻す
-	bcc reset_g
-
+	jsr change_noise_bit
 	jmp end
 
-reset_a:
-    lda #$41
-    sta $0000
+leftkey_down:
+	jsr change_coursor_left
 	jmp end
 
-reset_g:
-    lda #$47
-    sta $0000
+rightkey_down:
+	jsr change_coursor_right
 	jmp end
 
 end:
-	jsr draw_and_sound
+
 	rti
 .endproc
 
-; 再描画と音階変更
-.proc draw_and_sound
+; ノイズのビット変更
+.proc change_noise_bit
 
-	lda $2002	; PPUステータスレジスタをリードしてリセット
+	lda z_coursor
+	cmp #$ee ; カーソル位置乱数
+	beq rand
+
+	cmp #$f5 ; bit3
+	beq bit3
+
+	cmp #$f6 ; bit2
+	beq bit2
+
+	cmp #$f7 ; bit1
+	beq bit1
+
+	cmp #$f8 ; bit0
+	beq bit0
+
+	jmp end
+
+; 該当ビットを判定
+rand:
+	lda z_noise
+	eor #%10000000
+	sta z_noise
+	jmp end
+
+bit3:
+	lda z_noise
+	eor #%00001000
+	sta z_noise
+	jmp end
+
+bit2:
+	lda z_noise
+	eor #%00000100
+	sta z_noise
+	jmp end
+
+bit1:
+	lda z_noise
+	eor #%00000010
+	sta z_noise
+	jmp end
+
+bit0:
+	lda z_noise
+	eor #%00000001
+	sta z_noise
+	jmp end
+
+end:
+	; 現在の状態を描画
+	jsr draw_noise
+
+	rts
+.endproc
+
+; カーソル位置移動
+.proc change_coursor_left
+	lda z_coursor
+	cmp #$ee ; 乱数位置ならこれ以上左に行けない
+	beq end
+
+	cmp #$f5 ; 波長最上位
+	beq move_rand
+
+	; 上記以外はカーソル位置を1引く
+	dec z_coursor
+	jmp end
+
+move_rand:
+	lda #$ee
+	sta z_coursor
+	jmp end
+
+end:
+	jsr draw_coursor
+	rts
+
+.endproc
+
+.proc change_coursor_right
+	lda z_coursor
+	cmp #$f8 ; bit0位置ならこれ以上右に行けない
+	beq end
+
+	cmp #$ee ; 乱数位置
+	beq move_rand
+
+	; 上記以外はカーソル位置を1足す
+	inc z_coursor
+	jmp end
+
+move_rand:
+	lda #$f5
+	sta z_coursor
+	jmp end
+
+end:
+	jsr draw_coursor
+	rts
+.endproc
+
+.proc draw_coursor
+	; 一度カーソルを非表示
 	lda	#$21
 	sta	$2006
-	lda	#$cf
+	lda	#$ee
 	sta	$2006
 
-	lda $0000
+	ldy #$0b
+clear:
+	lda #$00
+	sta	$2007
+	dey
+	bne clear
+
+	lda	#$21
+	sta	$2006
+	lda	z_coursor
+	sta	$2006
+	lda #$20
 	sta	$2007
 
 	lda	#$00	; スクロール設定
 	sta	$2005
 	sta	$2005
-
-	; 直前鳴らしていた音と比較
-	lda $0000
-	cmp $0001
-	beq end		;同じだったら処理終了
-
-	sta $0001	;変更後の値を保存
-
-	jsr set_frequency	; 該当周波数を$0002に設定
-
-	; 周波数設定
-	lda $0002
-	sta $400a
-
-
-end:
 	rts
+
 .endproc
 
-.proc set_frequency
-	lda $0000
-	cmp #$41	; A
-	beq seta
+; ノイズの設定値描画
+.proc draw_noise
+; 乱数
+	lda	#$21
+	sta	$2006
+	lda	#$ce
+	sta	$2006
 
-	cmp #$42	; B
-	beq setb
+	lda z_noise
+	and #%10000000
+	bne zero1
+	lda #$30
+	jmp end1
 
-	cmp #$43	; C
-	beq setc
+zero1:
+	lda #$31
+end1:
+	sta	$2007
 
-	cmp #$44	; D
-	beq setd
+; bit3
+	lda	#$21
+	sta	$2006
+	lda	#$d5
+	sta	$2006
 
-	cmp #$45	; E
-	beq sete
+	lda z_noise
+	and #%000001000
+	bne zero2
+	lda #$30
+	jmp end2
 
-	cmp #$46	; F
-	beq setf
+zero2:
+	lda #$31
+end2:
+	sta	$2007
 
-	cmp #$47	; G
-	beq setg
+;bit2
+	lda z_noise
+	and #%000000100
+	bne zero3
+	lda #$30
+	jmp end3
 
-seta:
-	lda #%00111111
-	jmp end
-setb:
-	lda #%00111000
-	jmp end
-setc:
-	lda #%01101010
-	jmp end
-setd:
-	lda #%01011110
-	jmp end
-sete:
-	lda #%01010100
-	jmp end
-setf:
-	lda #%01001111
-	jmp end
-setg:
-	lda #%01000110
-	jmp end
+zero3:
+	lda #$31
+end3:
+	sta	$2007
 
-end:
-	sta $0002
+;bit1
+	lda z_noise
+	and #%000000010
+	bne zero4
+	lda #$30
+	jmp end4
+
+zero4:
+	lda #$31
+end4:
+	sta	$2007
+
+;bit0
+	lda z_noise
+	and #%000000001
+	bne zero5
+	lda #$30
+	jmp end5
+
+zero5:
+	lda #$31
+end5:
+	sta	$2007
+
+	lda	#$00	; スクロール設定
+	sta	$2005
+	sta	$2005
+	rts
+
+
+
+.endproc
+
+; 音を鳴らす
+.proc sound
+	; bit7-6: 未使用
+	; bit5: エンベロープDecayループ/長さカウンタ無効(1:ループ/無効)
+	; bit4: エンベロープDecay無効(1:無効,0:有効)
+	; bit3-0: ボリューム/Decayレート
+	lda #%00001111
+	sta $400c
+
+	; bit7: 乱数タイプ選択(0:32Kmode,1:93bitmode)
+	; bit6-4: 未使用
+	; bit3-0: 波長選択
+	lda z_noise
+	sta $400c
+
+	; bit7-3: 音の長さ
+	; bit2-0: 未使用
+	lda #%11000000
+	sta $400f
+
 	rts
 .endproc
 
@@ -240,8 +405,15 @@ palettes:
 	.byte	$0f, $0a, $1a, $2a
 
 ; 表示文字列
-string:
-	.byte	"ABCDEFGHIJKLM"
+string: ; らんすう：０　はちょう：０００
+	.byte	$a6, $ad, $8c, $82, $5b, $30, $00
+	.byte	$99, $90, $b6, $82, $5b, $30, $30, $30, $30
+
+; ゼロページ
+.org $0000
+z_counter: .byte $00 ; 入力受付カウンター
+z_coursor: .byte $00 ; カーソル位置
+z_noise: .byte $00 ; ノイズの設定値
 
 .segment "VECINFO"
 	.word	mainloop
