@@ -49,7 +49,7 @@ init_zero_page:
 
 	ldx #$00    	; Xレジスタクリア
 loadPal:			; ラベルは、「ラベル名＋:」の形式で記述
-	lda palettes, x	; Aに(ourpal + x)番地のパレットをロードする
+	lda s_palettes, x	; Aに(ourpal + x)番地のパレットをロードする
 	sta $2007 ; $2007にパレットの値を読み込む
 	inx ; Xレジスタに値を1加算している
 	cpx #32 	; Xを32(10進数。BGとスプライトのパレットの総数)と比較して同じかどうか比較している	
@@ -86,7 +86,7 @@ loadAttr1:
 
 	;---------------------
 	lda #$0b		; 道路の初期X座標=11
-	sta Road_X
+	sta z_road_x
 
 	; ネームテーブル0 $2000-$23BF描画
 	lda #$20
@@ -112,9 +112,9 @@ writeName2:
 
 	
 	lda #$23	; 道路のY座標アドレス初期化($23C0)
-	sta Road_YH
+	sta z_road_yh
 	lda #$C0
-	sta Road_YL
+	sta z_road_yl
 	
 	; PPUコントロールレジスタ2初期化
 	lda #%00001110	; BGの表示をONにする
@@ -133,51 +133,51 @@ infinityLoop:
 .proc mainloop
 
 	; 道路描画判定(4周に1度、画面外に道路を描画する)
-	inc Road_Cnt		; カウンタ増加
-	lda Road_Cnt
+	inc z_road_cnt		; カウンタ増加
+	lda z_road_cnt
 	cmp #4
 	bne scrollBG		; 4でないならまだ道路を描画しない
 	
 	; 描画更新
 	lda #0
-	sta Road_Cnt
+	sta z_road_cnt
 	; 道路Y座標アドレス計算
-	lda Road_YL
+	lda z_road_yl
 	sec					; sbcの前にキャリーフラグをセット
 	sbc #32				; 道路のY座標アドレス(下位)に32減算
-	sta Road_YL
+	sta z_road_yl
 	bcs setCourse		; 桁下がりしてなければsetCourseへ
-	lda Road_YH
+	lda z_road_yh
 	cmp #$20			; Y座標アドレス(上位)が$20まで下がったか？
 	bne calcCourseSub
 
 	; ネームテーブル選択番号を更新
-	lda NameTblNum
+	lda z_tbl_num
 	eor #1
-	sta NameTblNum
+	sta z_tbl_num
 
 	lda #$23			; 道路のY座標アドレス初期化($23C0)
-	sta Road_YH
+	sta z_road_yh
 	lda #$C0
-	sta Road_YL
+	sta z_road_yl
 	lda #03				; 次回更新するために、カウンタは4-1=3
-	sta Road_Cnt
+	sta z_road_cnt
 	jmp scrollBG		; 今回は更新しない
 
 calcCourseSub:
-	dec Road_YH		; Y座標アドレスの上位は$23→$22→$21→$20→$23...
+	dec z_road_yh		; Y座標アドレスの上位は$23→$22→$21→$20→$23...
 	
 setCourse:
 	; ネームテーブルのRoad_YH*$100+Road_YHに道路を1ライン描画する
-	lda Road_YH		; 上位アドレス
-	ldx NameTblNum
-	beq setCourseSub	; NameTblNumが0ならば$2000から更新する
+	lda z_road_yh		; 上位アドレス
+	ldx z_tbl_num
+	beq setCourseSub	; z_tbl_numが0ならば$2000から更新する
 	clc					; adcの前にキャリーフラグをクリア
-	adc #8 				; NameTblNumが1ならば$2800から更新する
+	adc #8 				; z_tbl_numが1ならば$2800から更新する
 
 setCourseSub:
 	sta $2006
-	lda Road_YL		; 下位アドレス
+	lda z_road_yl		; 下位アドレス
 	sta $2006
 	jsr writeCourse
 
@@ -189,54 +189,54 @@ scrollBG:
 	lda $2002			; スクロール値クリア
 	lda #0
 	sta $2005			; X方向は固定
-	lda Scroll_Y
+	lda z_scroll_y
 	sta $2005			; Y方向スクロール
-	dec Scroll_Y		; スクロール値を減算
-	dec Scroll_Y		; スクロール値を減算
+	dec z_scroll_y		; スクロール値を減算
+	dec z_scroll_y		; スクロール値を減算
 	cmp #254			; 254になった？
 	bne end
 	lda #238			; 16ドットスキップして238にする
-	sta Scroll_Y
+	sta z_scroll_y
 
 end:
 	rti
 
 	; コースを進める
 goCourse:
-	lda Road_Cnt
+	lda z_road_cnt
 	beq goCourseSub	; 待ち中なら更新しない
 	rts
 goCourseSub:
-	lda Course_Cnt
+	lda z_course_cnt
 	bne goCourseSub2	; まだカウント中
-	ldx Course_Index
-	lda Course_Tbl, x	; Courseテーブルの値をAに読み込む
+	ldx z_course_index
+	lda s_course_tbl, x	; Courseテーブルの値をAに読み込む
 	pha					; AをPUSH
 	and #$3				; bit0~1を取得
-	sta Course_Dir		; コース方向に格納
+	sta z_course_dir		; コース方向に格納
 	pla					; AをPULLして戻す
-	lsr a				; 左2シフトしてbit2~7を取得
-	lsr a
-	sta Course_Cnt		; コースカウンターに格納
-	inc Course_Index
-	lda Course_Index
+	lsr				; 左2シフトしてbit2~7を取得
+	lsr
+	sta z_course_cnt		; コースカウンターに格納
+	inc z_course_index
+	lda z_course_index
 	cmp #10				; コーステーブル10回分ループする
 	bne goCourseSub2
 	lda #0				; インデックスを0に戻す
-	sta Course_Index
+	sta z_course_index
 goCourseSub2:
-	lda Course_Dir
+	lda z_course_dir
 	bne goCourseLeft	; 0(直進)か？
 	jmp goCourseEnd
 goCourseLeft:
 	cmp #$01			; 1(左折)か？
 	bne goCourseRight
-	dec Road_X			; 道路X座標減算
+	dec z_road_x			; 道路X座標減算
 	jmp goCourseEnd
 goCourseRight:
-	inc Road_X			; 2(右折)なので道路X座標加算
+	inc z_road_x			; 2(右折)なので道路X座標加算
 goCourseEnd:
-	dec Course_Cnt
+	dec z_course_cnt
 	rts
 .endproc
 
@@ -245,7 +245,7 @@ goCourseEnd:
 ; BGに道路を１ライン描画する
 .proc writeCourse
 	; 左側の野原を描画
-	ldx Road_X
+	ldx z_road_x
 	dex
 	lda #$01		; 左側の野原をx座標-1分書き込む
 writeLeftField:
@@ -255,7 +255,7 @@ writeLeftField:
 
 	; 左側の路肩描画判定
 	; コース方向(0:直進1:左折2:右折)
-	lda Course_Dir
+	lda z_course_dir
 	bne writeLeftLeft	; 0(直進)か？
 	lda #$02			; 左側の路肩(直進)
 	jmp writeLeftEnd
@@ -281,7 +281,7 @@ writeRoad:
 
 
 	; 右側の路肩を描画
-	ldx Course_Dir
+	ldx z_course_dir
 	bne writeRightLeft	; 0(直進)か？
 	sta $2007			; 書いた道路は9なので野原を1キャラ多く書き込む
 	lda #$03			; 右側の路肩(直進)
@@ -299,7 +299,7 @@ writeRightEnd:
 	; 右側の野原を描画
 	lda #31
 	sec					; sbcの前にキャリーフラグをセット
-	sbc Road_X			; 道路のX座標を引く
+	sbc z_road_x			; 道路のX座標を引く
 	sec					; sbcの前にキャリーフラグをセット
 	sbc #10				; 道幅を引く
 	tax
@@ -315,15 +315,9 @@ writeRightField:
 	rti
 .endproc
 
-	; 初期データ
-X_Pos_Init:
-	.byte 120      ; X座標初期値
-Y_Pos_Init:
-	.byte 200      ; Y座標初期値
-
-	; コースデータ(10個・bit0~1=方向・bit2~7カウンタ)
-	; (直進=0,左折=1,右折=2)
-Course_Tbl:
+; コースデータ(10個・bit0~1=方向・bit2~7カウンタ)
+; (直進=0,左折=1,右折=2)
+s_course_tbl:
 	.byte %00100001
 	.byte %01000000
 	.byte %00110010
@@ -336,20 +330,20 @@ Course_Tbl:
 	.byte %00110000
 
 ; パレットテーブル
-palettes:
+s_palettes:
 	.incbin "giko4.pal"
 
 ; ゼロページ
 .org $0000
-Scroll_Y:  .byte $00	; Yスクロール値
-Road_X:    .byte $00	; 道路のX座標
-Road_YL:   .byte $00	; 道路のY座標アドレス(下位)
-Road_YH:   .byte $00	; 道路のY座標アドレス(上位)
-Road_Cnt:  .byte $00	; 道路更新待ちカウンター
-Course_Index: .byte $00 ; コーステーブルインデックス
-Course_Dir: .byte $00  ; コース方向(0:直進1:左折2:右折)
-Course_Cnt: .byte $00 ; コース方向継続カウンター 
-NameTblNum: .byte $00	; ネームテーブル選択番号(0=$2000,1=$2800)
+z_scroll_y:  .byte $00	; Yスクロール値
+z_road_x:    .byte $00	; 道路のX座標
+z_road_yl:   .byte $00	; 道路のY座標アドレス(下位)
+z_road_yh:   .byte $00	; 道路のY座標アドレス(上位)
+z_road_cnt:  .byte $00	; 道路更新待ちカウンター
+z_course_index: .byte $00 ; コーステーブルインデックス
+z_course_dir: .byte $00  ; コース方向(0:直進1:左折2:右折)
+z_course_cnt: .byte $00 ; コース方向継続カウンター 
+z_tbl_num: .byte $00	; ネームテーブル選択番号(0=$2000,1=$2800)
 
 .segment "VECINFO"
 	.word	mainloop
