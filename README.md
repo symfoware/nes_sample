@@ -49,4 +49,17 @@ VBlank割り込みを有効にし、割り込みが発生したタイミング�
 三角波サウンドで音を鳴らす処理を行うサンプルです。  
 [Ubuntuでファミコンプログラム　その９(三角波チャンネル)](https://symfoware.blog.fc2.com/blog-entry-1205.html)	  
 
+## sample10
 
+ノイズチャンネルで音を鳴らす処理を行うサンプルです。  
+[Ubuntuでファミコンプログラム　その10(ノイズチャンネル)](https://symfoware.blog.fc2.com/blog-entry-1206.html)	  
+
+## sample11
+
+縦スクロールを行うサンプルです。  
+[Ubuntuでファミコンプログラム　その11(縦スクロール)](https://symfoware.blog.fc2.com/blog-entry-1207.html)	  
+
+## sample12
+
+横スクロールを行うサンプルです。  
+[Ubuntuでファミコンプログラム　その12(横スクロール)](https://symfoware.blog.fc2.com/blog-entry-2801.html)	  
