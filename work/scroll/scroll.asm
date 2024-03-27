@@ -204,6 +204,7 @@ keycheckend:
     lda #%11001000
     ora z_name_index
     sta $2000
+    sta w_2000
 
     ; 処理済と設定
     lda #$01
@@ -389,6 +390,8 @@ finlow:
     lda z_draw ; 描画内容がなければ狩猟
     beq bvlank_end
 
+
+
     lda #%11001100 ; bit2 1でインクリメント32
     sta $2000
     lda #$24
@@ -513,6 +516,10 @@ z_tmp: .byte $00
 z_debug: .byte $00
 ; スタック領域は$0100~$01ff
 
+.org $0200 ; ワークエリア
+w_2000: .byte $00
+
+; $07000以降はスプライトDMAで予約
 
 .segment "VECINFO"
     .word mainloop ; VBlank割り込み時に実行するルーチン
