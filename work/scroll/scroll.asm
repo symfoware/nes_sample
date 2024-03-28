@@ -75,22 +75,22 @@ infinityLoop:
     bne infinityLoop ; 1なら処理済
 
     lda #$01
-    sta z_auto_move ; 自動移動中かの判定
+    sta z_auto_move ; 自動移動中かの判定 一旦onに
 
     ; きりの良いところまで移動するまで待機
     ; ストライプ左上の座標で判断
     lda z_x ; x座標
     ; 0-3bitが0ならキリがよい
     and #%00001111
-    bne bgmove
+    bne bgmove ; キー入力判定は行わず、直前の入力を参考にbg移動処理
 
     lda z_y ; x座標
     ; 0-3bitで0ならキリがよい
     and #%00001111
-    bne bgmove
+    bne bgmove ; キー入力判定は行わず、直前の入力を参考にbg移動処理
 
     lda #$00
-    sta z_auto_move ; 自動移動中かの判定
+    sta z_auto_move ; 自動移動中では無いのでoff
 
 
     ;lda $0703 ; x座標
@@ -145,7 +145,7 @@ keycheck2:
 ;LEFTKEYdown:
     lda #%00000010
     and z_controller_1
-    beq keycheck3
+    beq keycheck_r
 
     ; スクロール指示
     lda #%00000001
@@ -166,37 +166,27 @@ keycheck2:
     sta z_name_index
     jmp keycheckend
     
-keycheck3:
+keycheck_r:
 ;RIGHTKEYdown:
     lda #%00000001
     and z_controller_1
     beq keycheckend
 
     ; スクロール指示
-    lda #%00000001
+    lda #%00000010
     sta z_frame_operation
 
     lda z_auto_move
-    bne keycheck33 ; きりのよいところからの移動でなければスクロールのみ
+    bne keycheck_r_scroll ; きりのよいところからの移動でなければスクロールのみ
     
-    ; きりのよい座標から右に移動する場合はworldアドレスを加算
-    inc z_world_x
-    lda z_world_x
-    cmp #$20 ; マップ右側に達していたらリセット
-    bcc keycheck32
-    lda #$00
-    sta z_world_x
-
-keycheck32:
-    ; メモリーに次に表示する内容を展開
+    ; きりのよい座標から右に移動する場合はメモリーに次に表示する内容を展開
     jsr loadRight
-    
     
     ; スクロールと描画指示
     lda #%00000011
     sta z_frame_operation
 
-keycheck33:
+keycheck_r_scroll:
     ; x座標を1足す
     lda z_x
     clc
@@ -214,11 +204,11 @@ keycheckend:
 
 	; 表示するネームテーブル番号(bit1~0)をセットする
     ; 末尾がネームテーブル 0:$2000,1:$2400
-    lda #%11001000
+    lda #%11001000 ;bi2:PPUインクリメント+1
+    ;lda #%11001100 ;bi2:PPUインクリメント+32 ; これを変更すると表示が崩れる気がする
     ora z_name_index
     sta z_2000
-    ;sta $2000
-
+    
     lda #$01
     sta z_frame_processed
 
@@ -230,6 +220,73 @@ keycheckend:
 ; ---------------------------------------------------------------------------
 .proc loadRight
     lda z_world_x
+    and #%00000111
+    sta z_tmp ; ビットシフト数
+    inc z_tmp
+    lda z_world_x
+    and #%11111000
+    lsr
+    lsr
+    lsr
+    clc
+    adc #$02
+    cmp #$06
+    bcc skip_reset
+    sec
+    sbc #$06
+
+skip_reset:
+    sta z_index ; マップのindex
+
+;    ldy #$10
+;load_chip:
+    ldx z_index
+    lda map, x
+    ldx z_tmp
+shift_chip:
+    asl ; ビットシフト
+    dex
+    bne shift_chip
+    ; Cにマップの情報が入っているはず
+    
+    ;bne load_chip
+    bcc floor
+    
+    ldx #$00
+    lda #$04
+    sta w_map, x
+    inx
+    lda #$05
+    sta w_map, x
+    jmp end_chip
+
+floor:
+    ldx #$00
+    lda #$00
+    sta w_map, x
+    inx
+    lda #$01
+    sta w_map, x
+
+end_chip:
+    
+    
+    lda #$24
+    sta w_name_high
+    lda #$00
+    sta w_name_low
+
+    ; 座標を1加算
+    inc z_world_x
+    lda z_world_x
+    cmp #$30 ; マップ右側に達していたらリセット
+    bcc skip
+    lda #$00
+skip:
+    sta z_world_x
+
+    
+    ;inc z_debug
     rts
 .endproc
 
@@ -392,6 +449,7 @@ finlow:
     pha ; A(=Y)をスタックに
     php ; ステータスをスタックに
 
+
     inc z_frame ; タイマーカウントアップ
     lda z_frame_processed
     ; まだ準備できていなければスキップ
@@ -399,39 +457,55 @@ finlow:
 
     ; 描画指示読み取り
     lda z_frame_operation
-    lsr ; bit0読み取り
-    bcc draw_bg ; スクロール指示がなければBG描画
+    beq bvlank_end ; 特に操作がなければ終了
 
+; ---- BG/スクロール共通の処理
 	; 表示するネームテーブル番号(bit1~0)をセットする
     ; 末尾がネームテーブル 0:$2000,1:$2400
+
+    lda z_frame_operation
+    lsr ; bit0読み取り
+    bcc scroll ; BG描画指示がなければスクロール
+
+    ; BG描画
+    lda w_name_high
+    sta $2006
+    lda w_name_low
+    sta $2006
+    ldx #$00
+    lda w_map, x
+    sta $2007
+    inx 
+    lda w_map, x
+    sta $2007
+    
+
+
+scroll:
+    lda z_frame_operation
+    lsr ; bit1読み取り
+    lsr
+    bcc bvlank_end ; スクロール指示がなければ終了
+
+
     lda z_2000
     sta $2000
 
     ; スクロール実行
     ; スクロール位置リセット
     lda $2002
+
     ; スクロール実行
     lda z_x
     sta $2005
     lda z_y
     sta $2005
 
-
-draw_bg:
-    lda z_frame_operation
-    lsr ; bit1読み取り
-    lsr
-    bcc bvlank_end ; 描画指示がなければ終了
-
-    ; 描画
-    inc z_debug
-
-
-
 bvlank_end:
     ; 描画済にフラグを更新
     lda #$00
     sta z_frame_processed
+    sta z_frame_operation
 
 
     ; 退避した値を復帰
@@ -510,7 +584,9 @@ z_tmp: .byte $00
 z_debug: .byte $00
 
 .org $0200 ; ワークエリア
-
+w_name_high: .byte $00
+w_name_low: .byte $00
+w_map: .byte $00
 
 ; $07000以降はスプライトDMAで予約
 
