@@ -43,11 +43,11 @@ copypal:
 ; マップ情報を表示
     ; mapをネームテーブル0へ
     lda #$00
-    sta z_name_index
+    sta <z_name_index
     lda #<map
-    sta z_map_low
+    sta <z_map_low
     lda #>map
-    sta z_map_high
+    sta <z_map_high
     jsr drawchip
 
 ; BGのスクリーン表示位置設定左上にぴったり(スクロール設定)
@@ -63,7 +63,7 @@ copypal:
     sta $2001
 
 ; 初期表示
-    lda #$01
+    lda #$00
     sta z_frame_processed
 
 ; ---------------------------------------------------------------------------------
@@ -71,8 +71,7 @@ copypal:
 infinityLoop:
 
     ; 処理済のフレームかチェック
-    lda #$01
-    bit z_frame_processed
+    lda z_frame_processed
     bne infinityLoop ; 1なら処理済
 
     lda #$01
@@ -148,6 +147,10 @@ keycheck2:
     and z_controller_1
     beq keycheck3
 
+    ; スクロール指示
+    lda #%00000001
+    sta z_frame_operation
+
     ; x座標を1引く
     lda z_x
     sec
@@ -169,14 +172,31 @@ keycheck3:
     and z_controller_1
     beq keycheckend
 
+    ; スクロール指示
+    lda #%00000001
+    sta z_frame_operation
+
     lda z_auto_move
-    bne keycheck31 ; きりのよいところからの移動でなければ
+    bne keycheck33 ; きりのよいところからの移動でなければスクロールのみ
+    
     ; きりのよい座標から右に移動する場合はworldアドレスを加算
     inc z_world_x
+    lda z_world_x
+    cmp #$20 ; マップ右側に達していたらリセット
+    bcc keycheck32
+    lda #$00
+    sta z_world_x
+
+keycheck32:
     ; メモリーに次に表示する内容を展開
     jsr loadRight
+    
+    
+    ; スクロールと描画指示
+    lda #%00000011
+    sta z_frame_operation
 
-keycheck31:
+keycheck33:
     ; x座標を1足す
     lda z_x
     clc
@@ -192,21 +212,13 @@ keycheck31:
 
 keycheckend:
 
-    ; スクロール位置リセット
-    lda $2002
-    lda z_x
-    sta $2005
-    lda z_y
-    sta $2005
-
 	; 表示するネームテーブル番号(bit1~0)をセットする
     ; 末尾がネームテーブル 0:$2000,1:$2400
     lda #%11001000
     ora z_name_index
-    sta $2000
-    sta w_2000
+    sta z_2000
+    ;sta $2000
 
-    ; 処理済と設定
     lda #$01
     sta z_frame_processed
 
@@ -218,8 +230,6 @@ keycheckend:
 ; ---------------------------------------------------------------------------
 .proc loadRight
     lda z_world_x
-    lda #$01
-    sta z_draw
     rts
 .endproc
 
@@ -383,58 +393,38 @@ finlow:
     php ; ステータスをスタックに
 
     inc z_frame ; タイマーカウントアップ
-    lda #$01
-    bit z_frame_processed
-    beq bvlank_end ; 1でなければ処理するものがない
-
-    lda z_draw ; 描画内容がなければ狩猟
+    lda z_frame_processed
+    ; まだ準備できていなければスキップ
     beq bvlank_end
 
+    ; 描画指示読み取り
+    lda z_frame_operation
+    lsr ; bit0読み取り
+    bcc draw_bg ; スクロール指示がなければBG描画
 
-
-    lda #%11001100 ; bit2 1でインクリメント32
+	; 表示するネームテーブル番号(bit1~0)をセットする
+    ; 末尾がネームテーブル 0:$2000,1:$2400
+    lda z_2000
     sta $2000
-    lda #$24
-    sta $2006
-    lda #$00
-    sta $2006
-    
-    ldy #$0f
-draw:
-    lda #$04
-    sta $2007
-    lda #$06
-    sta $2007
-    dey
-    bne draw
 
-    lda #$24
-    sta $2006
-    lda #$01
-    sta $2006
-    
-    ldy #$0f
-draw2:
-    lda #$05
-    sta $2007
-    lda #$07
-    sta $2007
-    dey
-    bne draw2
-    
-    ;lda #$04
-    ;sta $2007
-    ;lda #$06
-    ;sta $2007
-
-    lda #$00
-    sta z_draw
+    ; スクロール実行
+    ; スクロール位置リセット
+    lda $2002
+    ; スクロール実行
+    lda z_x
+    sta $2005
+    lda z_y
+    sta $2005
 
 
+draw_bg:
+    lda z_frame_operation
+    lsr ; bit1読み取り
+    lsr
+    bcc bvlank_end ; 描画指示がなければ終了
 
-    ;lda #$07 ; スプライトデータは$0700-$07ff番地にしたので、先頭の上位ビット07を設定
-    ;sta $4014 ; スプライトDMAレジスタにAをストアして、スプライトデータをDMA転送する
-
+    ; 描画
+    inc z_debug
 
 
 
@@ -442,7 +432,6 @@ bvlank_end:
     ; 描画済にフラグを更新
     lda #$00
     sta z_frame_processed
-
 
 
     ; 退避した値を復帰
@@ -477,9 +466,9 @@ palettes:
 
 ; マップ情報
 map:
-    .byte %00000000, %00000000, %00000000, %00000000, %00000000, %00000000
-    .byte %00000000, %00000000, %00000000, %00000000, %00000000, %00000000
-    .byte %00000000, %00000000, %00000000, %00000000, %00000000, %00000000
+    .byte %10000000, %00000001, %10000000, %00000001, %10000000, %00000001
+    .byte %00000000, %00000000, %10000000, %00000001, %10000000, %00000001
+    .byte %00000000, %00000000, %00000000, %00000000, %10000000, %00000001
     .byte %00000001, %11000000, %00000111, %11000000, %00000111, %11110000
     .byte %00000000, %10000000, %00000010, %10000000, %00000010, %10100000
     .byte %00000000, %10000000, %00000010, %10000000, %00000010, %10100000
@@ -489,35 +478,39 @@ map:
     .byte %00000000, %10000000, %00000010, %10000000, %00000010, %10100000
     .byte %00000000, %10000000, %00000010, %10000000, %00000010, %10100000
     .byte %00000001, %11000000, %00000111, %11000000, %00000111, %11110000
-    .byte %00000000, %00000000, %00000000, %00000000, %00000000, %00000000
-    .byte %00000000, %00000000, %00000000, %00000000, %00000000, %00000000
-    .byte %00000000, %00000000, %00000000, %00000000, %00000000, %00000000
+    .byte %00000000, %00000000, %00000000, %00000000, %10000000, %00000001
+    .byte %00000000, %00000000, %10000000, %00000001, %10000000, %00000001
+    .byte %10000000, %00000001, %10000000, %00000001, %10000000, %00000001
 
 ; 参照のアドレスを指定できるかテスト
 maprow:
-    .byte >map, <map
+    .word map
 
 ; 変数定義
-.org $0000 ; ゼロページ
+.org $0000 ; ゼロページ領域
 z_frame: .byte $00 ; VBlank毎にカウントアップ
-z_frame_processed: .byte $00 ; 処理済フレーム
+z_frame_processed: .byte $00 ; 描画準備ができているか0:未処理、1:銃日済
+z_frame_operation: .byte $00 ; VBlank中にやってほしいこと bit0:スクロール bit1:描画
 z_controller_1: .byte $00 ; コントローラー1入力
 z_chip: .byte $00   ; 処理中のマップ情報
 z_index: .byte $00  ; ループカウンタ値保存用
 z_name_index: .byte $00 ; 対象ネームテーブルの番号0/1
 z_map_low: .byte $00 ; 読み込みマップのアドレス
 z_map_high: .byte $00 
-z_x: .byte $00
-z_y: .byte $00
-z_world_x: .byte $00
-z_auto_move: .byte $00
-z_draw: .byte $00
+; -- 09 --
+z_x: .byte $00 ; スクロールx
+z_y: .byte $00 ; スクロールy
+z_world_x: .byte $00 ; 絶対座標x
+z_auto_move: .byte $00 ; 自動移動中かの判定
+z_2000: .byte $00
 z_tmp: .byte $00
-z_debug: .byte $00
 ; スタック領域は$0100~$01ff
 
+.org $0050
+z_debug: .byte $00
+
 .org $0200 ; ワークエリア
-w_2000: .byte $00
+
 
 ; $07000以降はスプライトDMAで予約
 
