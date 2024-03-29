@@ -377,7 +377,7 @@ loopup:
     jmp wallup
 
 floorup:
-    lda #$00
+    lda #$01
     sta $2007
     lda #$01
     sta $2007
@@ -412,9 +412,9 @@ looplow:
     jmp walllow
 
 floorlow:
-    lda #$02
+    lda #$01
     sta $2007
-    lda #$03
+    lda #$01
     sta $2007
     jmp finlow
 
