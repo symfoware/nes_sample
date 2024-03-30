@@ -50,6 +50,12 @@ copypal:
     sta <z_map_high
     jsr drawchip
 
+    ; 描画位置の右端座標
+    lda #$20
+    sta z_current_left_high
+    lda #$00
+    sta z_current_left_low
+
 ; BGのスクリーン表示位置設定左上にぴったり(スクロール設定)
     lda #$00
     sta z_x
@@ -129,44 +135,53 @@ bgmove:
 ;UPKEYdown
     lda #%00001000
     and z_controller_1
-    beq keycheck1 ; 結果が0なら押されてない判定
+    beq keycheck_down ; 結果が0なら押されてない判定
     ; 縦スクロールは後ほど
     jmp keycheckend
 
-keycheck1:
+keycheck_down:
 ;DOWNKEYdown:
     lda #%00000100
     and z_controller_1
-    beq keycheck2 ; 結果が0なら押されてない判定
+    beq keycheck_left ; 結果が0なら押されてない判定
     ; 縦スクロールは後ほど
     jmp keycheckend
 
-keycheck2:
+keycheck_left:
 ;LEFTKEYdown:
     lda #%00000010
     and z_controller_1
-    beq keycheck_r
+    beq keycheck_right
 
     ; スクロール指示
-    lda #%00000001
+    lda #%00000010
     sta z_frame_operation
 
+    lda z_auto_move
+    bne keycheck_l_scroll ; きりのよいところからの移動でなければスクロールのみ
+    
+    ; きりのよい座標から左に移動する場合はメモリーに次に表示する内容を展開
+    jsr loadLeft
+    
+    ; スクロールと描画指示
+    lda #%00000011
+    sta z_frame_operation
+
+keycheck_l_scroll:
     ; x座標を1引く
     lda z_x
     sec
     sbc #$01
     sta z_x
     bcs keycheckend ; ボローが発生しなければそのまま処理
-
-    lda #$ff
-    sta z_x
-    ; ボローしたらname_table切り替え
+    
+    ; ボローしたらname_table切り替え z_xは自動的に$ffになるのでリセット不要
     lda z_name_index
     eor #$01
     sta z_name_index
     jmp keycheckend
     
-keycheck_r:
+keycheck_right:
 ;RIGHTKEYdown:
     lda #%00000001
     and z_controller_1
@@ -190,11 +205,11 @@ keycheck_r_scroll:
     ; x座標を1足す
     lda z_x
     clc
-    adc #$01
+    adc #$01 ; #$08に変更すれば8倍速でスクロール
     sta z_x
     bcc keycheckend ; キャリーしていなければそのまま処理
     
-    ; キャリーしたらname_table切り替え
+    ; キャリーしたらname_table切り替え z_xは自動的に$00になるのでリセット不要
     lda z_name_index
     eor #$01
     sta z_name_index
@@ -218,13 +233,140 @@ keycheckend:
 
 
 ; ---------------------------------------------------------------------------
-.proc loadRight
+; 左側方向のマップ情報を取得
+.proc loadLeft
+
+    ; 先にworld座標を1減算し、表示したいインデックスに移動しておく
+    lda z_world_x
+    bne dec_world_x; 0でなければ引く余地あり
+    ; 0まで達していたら2f
+    lda #$2f
+    sta z_world_x
+    jmp world_end
+    
+dec_world_x:
+    dec z_world_x
+
+world_end:
+
+    ; 変数初期化
+    lda #$00
+    sta z_map_index
+
+    ; 現在のz_world_xが描画したい座標
     lda z_world_x
     and #%00000111
-    sta z_tmp ; ビットシフト数
+    sta z_tmp
+    inc z_tmp
+    sta z_debug
+    
+    lda z_world_x
+    and #%11111000 ; 上位ビットがmapのインデックス
+    lsr
+    lsr
+    lsr
+    sta z_index ; マップの開始indexを退避
+
+    ; 取得するチップ数
+    ldy #$0f
+load_chip:
+    ldx z_index
+    lda map, x
+    ldx z_tmp
+shift_chip:
+    asl ; ビットシフト
+    dex
+    bne shift_chip
+    ; Cにマップの情報が入っている
+    bcc floor
+    
+    ; 壁
+    ldx z_map_index
+    lda #$04
+    sta w_map, x
+    inx
+    lda #$05
+    sta w_map, x
+    inx
+    lda #$06
+    sta w_map, x
+    inx
+    lda #$07
+    sta w_map, x
+    inx
+    jmp end_chip
+
+floor:
+    ldx z_map_index
+    lda #$01
+    sta w_map, x
+    inx
+    lda #$01
+    sta w_map, x
+    inx
+    lda #$01
+    sta w_map, x
+    inx
+    lda #$01
+    sta w_map, x
+    inx
+
+end_chip:
+    ; 書き込みインデックスを保存
+    stx z_map_index
+    ; mapのインデックを6進める
+    inc z_index
+    inc z_index
+    inc z_index
+    inc z_index
+    inc z_index
+    inc z_index
+    dey
+    bne load_chip ;必要数チップを披露
+    
+    ; 書き込み開始位置判定
+    ; 先にlowを2引く
+    lda z_current_left_low
+    bne sub2 ; 0でなければ素直に2引く
+    ; 0なら$1eでリセット
+    lda #$1e
+    sta z_current_left_low
+    ; highも変更
+    ; 現在のhighを参照 $20なら$24, $24なら$20に書き込む
+    lda z_current_left_high
+    eor #%00000100
+    sta z_current_left_high
+    jmp subend
+
+sub2:
+    dec z_current_left_low
+    dec z_current_left_low
+
+subend:
+    ; 描画座標確定
+    lda z_current_left_high
+    sta z_name_high
+    lda z_current_left_low
+    sta z_name_low
+
+    
+    ;inc z_debug
+    rts
+.endproc
+
+; ---------------------------------------------------------------------------
+; 右側方向のマップ情報を取得
+.proc loadRight
+    ; 変数初期化
+    lda #$00
+    sta z_map_index
+
+    lda z_world_x
+    and #%00000111
+    sta z_tmp ; 下位ビットがビットシフト数
     inc z_tmp
     lda z_world_x
-    and #%11111000
+    and #%11111000 ; 上位ビットがmapのインデックス
     lsr
     lsr
     lsr
@@ -236,10 +378,11 @@ keycheckend:
     sbc #$06
 
 skip_reset:
-    sta z_index ; マップのindex
+    sta z_index ; マップの開始indexを退避
 
-;    ldy #$10
-;load_chip:
+    ; 取得するチップ数
+    ldy #$0f
+load_chip:
     ldx z_index
     lda map, x
     ldx z_tmp
@@ -247,34 +390,78 @@ shift_chip:
     asl ; ビットシフト
     dex
     bne shift_chip
-    ; Cにマップの情報が入っているはず
-    
-    ;bne load_chip
+    ; Cにマップの情報が入っている
     bcc floor
     
-    ldx #$00
+    ; 壁
+    ldx z_map_index
     lda #$04
     sta w_map, x
     inx
     lda #$05
     sta w_map, x
+    inx
+    lda #$06
+    sta w_map, x
+    inx
+    lda #$07
+    sta w_map, x
+    inx
     jmp end_chip
 
 floor:
-    ldx #$00
-    lda #$00
+    ldx z_map_index
+    lda #$01
     sta w_map, x
     inx
     lda #$01
     sta w_map, x
+    inx
+    lda #$01
+    sta w_map, x
+    inx
+    lda #$01
+    sta w_map, x
+    inx
 
 end_chip:
+    ; 書き込みインデックスを保存
+    stx z_map_index
+    ; mapのインデックを6進める
+    inc z_index
+    inc z_index
+    inc z_index
+    inc z_index
+    inc z_index
+    inc z_index
+    dey
+    bne load_chip ;必要数チップを披露
     
+    ; 書き込み開始位置判定
+    ; 現在のhighを参照 $20なら$24, $24なら$20に書き込む
+    lda z_current_left_high
+    eor #%00000100
+    sta z_name_high
+    ; lowはそのまま
+    lda z_current_left_low
+    sta z_name_low
     
-    lda #$24
-    sta w_name_high
+    ; currentの座標を2進める
+    clc
+    adc #$02
+    cmp #$20
+    sta z_current_left_low
+    bcc skip_left_reest ; $20を超えてなければそのまま
+
+    ; $20を超えたら0リセット
     lda #$00
-    sta w_name_low
+    sta z_current_left_low
+    ; highを切り替え($20->$24, $24->$20)
+    lda z_current_left_high
+    eor #%00000100
+    sta z_current_left_high
+
+skip_left_reest:
 
     ; 座標を1加算
     inc z_world_x
@@ -468,16 +655,49 @@ finlow:
     bcc scroll ; BG描画指示がなければスクロール
 
     ; BG描画
-    lda w_name_high
-    sta $2006
-    lda w_name_low
-    sta $2006
+    ldy #$0f
     ldx #$00
+write_bg:
+    lda z_name_high
+    sta $2006
+    lda z_name_low
+    sta $2006
+    lda w_map, x
+    sta $2007
+    inx
+    lda w_map, x
+    sta $2007
+    inx
+
+    lda z_name_low
+    clc
+    adc #$20
+    sta z_name_low
+
+    lda z_name_high
+    sta $2006
+    lda z_name_low
+    sta $2006
+
     lda w_map, x
     sta $2007
     inx 
     lda w_map, x
     sta $2007
+
+    ; 次に描画するインデックス準備
+    ; ここでキャリーが発生する可能性がある
+    lda z_name_low
+    clc
+    adc #$20
+    sta z_name_low
+    bcc not_inc_high ; キャリーが発生しなかったらそのままｆ
+    ; キャリーしたらhightを1進める
+    inc z_name_high
+not_inc_high:
+    inx
+    dey
+    bne write_bg
     
 
 
@@ -576,7 +796,13 @@ z_x: .byte $00 ; スクロールx
 z_y: .byte $00 ; スクロールy
 z_world_x: .byte $00 ; 絶対座標x
 z_auto_move: .byte $00 ; 自動移動中かの判定
-z_2000: .byte $00
+z_2000: .byte $00 ; スクロール用
+z_name_high: .byte $00
+z_name_low: .byte $00
+; -- 10 --
+z_current_left_high: .byte $00 ; 現在左側の座標情報(high)
+z_current_left_low: .byte $00 ; 現在左側の座標情報(low)
+z_map_index: .byte $00 ; マップ読み込み時の退避領域
 z_tmp: .byte $00
 ; スタック領域は$0100~$01ff
 
@@ -584,10 +810,7 @@ z_tmp: .byte $00
 z_debug: .byte $00
 
 .org $0200 ; ワークエリア
-w_name_high: .byte $00
-w_name_low: .byte $00
 w_map: .byte $00
-
 ; $07000以降はスプライトDMAで予約
 
 .segment "VECINFO"
