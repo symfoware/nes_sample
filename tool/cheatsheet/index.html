@@ -37,6 +37,20 @@ table {
 .bg-gray {
     background-color: rgba(17, 17, 17, .05);
 }
+.name-table {
+    border:1px solid #333;
+    max-width: 820px;
+}
+.name-table td {
+    text-align: center;
+    padding: .1em;
+    font-size: 1em;
+    width: 20px;
+    border:1px solid #333;
+}
+.cell-highlite {
+    background-color: #ffffaa;
+}
 </style>
 </head>
 <body>
@@ -45,6 +59,8 @@ table {
         <button id="memory" class="tab-change">メモリマップ</button>
         <button id="register" class="tab-change">I/Oレジスタ</button>
         <button id="pat" class="tab-change">パット入力/スプライト</button>
+        <button id="name" class="tab-change">画面座標</button>
+        <button id="hex" class="tab-change">HEX</button>
     </nav>
     <main style="padding: 70px 10px 0px 20px">
         <!-- ========================================================================== -->
@@ -1205,12 +1221,957 @@ table {
                 </div>
             </div>
         </section>
+
+        <!-- ========================================================================== -->
+        <!-- 画面座標 -->
+        <section id="name-tab" class="hide">
+            <div class="flex one two-1700">
+                <div>
+                    <table class="name-table">
+                        <caption>ネーム/属性テーブル0</caption>
+                        <tbody>
+                            <tr>
+                                <td>-</td>
+                                <td colspan="2">00</td>
+                                <td colspan="2">01</td>
+                                <td colspan="2">02</td>
+                                <td colspan="2">03</td>
+                                <td colspan="2">04</td>
+                                <td colspan="2">05</td>
+                                <td colspan="2">06</td>
+                                <td colspan="2">07</td>
+                                <td colspan="2">08</td>
+                                <td colspan="2">09</td>
+                                <td colspan="2">0a</td>
+                                <td colspan="2">0b</td>
+                                <td colspan="2">0c</td>
+                                <td colspan="2">0d</td>
+                                <td colspan="2">0e</td>
+                                <td colspan="2">0f</td>
+                            </tr>
+                            <tr>
+                                <td>-</td>
+                                <td>00</td>
+                                <td>01</td>
+                                <td>02</td>
+                                <td>03</td>
+                                <td>04</td>
+                                <td>05</td>
+                                <td>06</td>
+                                <td>07</td>
+                                <td>08</td>
+                                <td>09</td>
+                                <td>0a</td>
+                                <td>0b</td>
+                                <td>0c</td>
+                                <td>0d</td>
+                                <td>0e</td>
+                                <td>0f</td>
+                                <td>10</td>
+                                <td>11</td>
+                                <td>12</td>
+                                <td>13</td>
+                                <td>14</td>
+                                <td>15</td>
+                                <td>16</td>
+                                <td>17</td>
+                                <td>18</td>
+                                <td>19</td>
+                                <td>1a</td>
+                                <td>1b</td>
+                                <td>1c</td>
+                                <td>1d</td>
+                                <td>1e</td>
+                                <td>1f</td>
+                            </tr>
+                            
+                            <tr>
+                                <td>2000</td>
+                                <td rowspan=2 colspan=2>23c0<br/>1-0</td>
+                                <td rowspan=2 colspan=2>23c0<br/>3-2</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">23c1<br/>1-0</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">23c1<br/>3-2</td>
+                                <td rowspan=2 colspan=2>23c2<br/>1-0</td>
+                                <td rowspan=2 colspan=2>23c2<br/>3-2</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">23c3<br/>1-0</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">23c3<br/>3-2</td>
+                                <td rowspan=2 colspan=2>23c4<br/>1-0</td>
+                                <td rowspan=2 colspan=2>23c4<br/>3-2</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">23c5<br/>1-0</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">23c5<br/>3-2</td>
+                                <td rowspan=2 colspan=2>23c6<br/>1-0</td>
+                                <td rowspan=2 colspan=2>23c6<br/>3-2</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">23c7<br/>1-0</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">23c7<br/>3-2</td>
+                            </tr>
+                            <tr>
+                                <td>2020</td>
+                            </tr>
+                            
+                            <tr>
+                                <td>2040</td>
+                                <td rowspan=2 colspan=2>23c0<br/>5-4</td>
+                                <td rowspan=2 colspan=2>23c0<br/>7-6</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">23c1<br/>5-4</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">23c1<br/>7-6</td>
+                                <td rowspan=2 colspan=2>23c2<br/>5-4</td>
+                                <td rowspan=2 colspan=2>23c2<br/>7-6</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">23c3<br/>5-4</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">23c3<br/>7-6</td>
+                                <td rowspan=2 colspan=2>23c4<br/>5-4</td>
+                                <td rowspan=2 colspan=2>23c4<br/>7-6</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">23c5<br/>5-4</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">23c5<br/>7-6</td>
+                                <td rowspan=2 colspan=2>23c6<br/>5-4</td>
+                                <td rowspan=2 colspan=2>23c6<br/>7-6</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">23c7<br/>5-4</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">23c7<br/>7-6</td>
+                            </tr>
+                            <tr>
+                                <td>2060</td>
+                            </tr>
+                            
+                            <tr>
+                                <td>2080</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">23c8<br/>1-0</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">23c8<br/>3-2</td>
+                                <td rowspan=2 colspan=2>23c9<br/>1-0</td>
+                                <td rowspan=2 colspan=2>23c9<br/>3-2</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">23ca<br/>1-0</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">23ca<br/>3-2</td>
+                                <td rowspan=2 colspan=2>23cb<br/>1-0</td>
+                                <td rowspan=2 colspan=2>23cb<br/>3-2</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">23cc<br/>1-0</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">23cc<br/>3-2</td>
+                                <td rowspan=2 colspan=2>23cd<br/>1-0</td>
+                                <td rowspan=2 colspan=2>23cd<br/>3-2</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">23ce<br/>1-0</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">23ce<br/>3-2</td>
+                                <td rowspan=2 colspan=2>23cf<br/>1-0</td>
+                                <td rowspan=2 colspan=2>23cf<br/>3-2</td>
+                            </tr>
+                            <tr>
+                                <td>20a0</td>
+                            </tr>
+                            
+                            <tr>
+                                <td>20c0</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">23c8<br/>5-4</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">23c8<br/>7-6</td>
+                                <td rowspan=2 colspan=2>23c9<br/>5-4</td>
+                                <td rowspan=2 colspan=2>23c9<br/>7-6</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">23ca<br/>5-4</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">23ca<br/>7-6</td>
+                                <td rowspan=2 colspan=2>23cb<br/>5-4</td>
+                                <td rowspan=2 colspan=2>23cb<br/>7-6</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">23cc<br/>5-4</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">23cc<br/>7-6</td>
+                                <td rowspan=2 colspan=2>23cd<br/>5-4</td>
+                                <td rowspan=2 colspan=2>23cd<br/>7-6</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">23ce<br/>5-4</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">23ce<br/>7-6</td>
+                                <td rowspan=2 colspan=2>23cf<br/>5-4</td>
+                                <td rowspan=2 colspan=2>23cf<br/>7-6</td>
+                            </tr>
+                            <tr>
+                                <td>20e0</td>
+                            </tr>
+                            
+                            <tr>
+                                <td>2100</td>
+                                <td rowspan=2 colspan=2>23d0<br/>1-0</td>
+                                <td rowspan=2 colspan=2>23d0<br/>3-2</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">23d1<br/>1-0</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">23d1<br/>3-2</td>
+                                <td rowspan=2 colspan=2>23d2<br/>1-0</td>
+                                <td rowspan=2 colspan=2>23d2<br/>3-2</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">23d3<br/>1-0</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">23d3<br/>3-2</td>
+                                <td rowspan=2 colspan=2>23d4<br/>1-0</td>
+                                <td rowspan=2 colspan=2>23d4<br/>3-2</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">23d5<br/>1-0</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">23d5<br/>3-2</td>
+                                <td rowspan=2 colspan=2>23d6<br/>1-0</td>
+                                <td rowspan=2 colspan=2>23d6<br/>3-2</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">23d7<br/>1-0</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">23d7<br/>3-2</td>
+                            </tr>
+                            <tr>
+                                <td>2120</td>
+                            </tr>
+                            
+                            <tr>
+                                <td>2140</td>
+                                <td rowspan=2 colspan=2>23d0<br/>5-4</td>
+                                <td rowspan=2 colspan=2>23d0<br/>7-6</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">23d1<br/>5-4</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">23d1<br/>7-6</td>
+                                <td rowspan=2 colspan=2>23d2<br/>5-4</td>
+                                <td rowspan=2 colspan=2>23d2<br/>7-6</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">23d3<br/>5-4</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">23d3<br/>7-6</td>
+                                <td rowspan=2 colspan=2>23d4<br/>5-4</td>
+                                <td rowspan=2 colspan=2>23d4<br/>7-6</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">23d5<br/>5-4</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">23d5<br/>7-6</td>
+                                <td rowspan=2 colspan=2>23d6<br/>5-4</td>
+                                <td rowspan=2 colspan=2>23d6<br/>7-6</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">23d7<br/>5-4</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">23d7<br/>7-6</td>
+                            </tr>
+                            <tr>
+                                <td>2160</td>
+                            </tr>
+                            
+                            <tr>
+                                <td>2180</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">23d8<br/>1-0</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">23d8<br/>3-2</td>
+                                <td rowspan=2 colspan=2>23d9<br/>1-0</td>
+                                <td rowspan=2 colspan=2>23d9<br/>3-2</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">23da<br/>1-0</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">23da<br/>3-2</td>
+                                <td rowspan=2 colspan=2>23db<br/>1-0</td>
+                                <td rowspan=2 colspan=2>23db<br/>3-2</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">23dc<br/>1-0</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">23dc<br/>3-2</td>
+                                <td rowspan=2 colspan=2>23dd<br/>1-0</td>
+                                <td rowspan=2 colspan=2>23dd<br/>3-2</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">23de<br/>1-0</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">23de<br/>3-2</td>
+                                <td rowspan=2 colspan=2>23df<br/>1-0</td>
+                                <td rowspan=2 colspan=2>23df<br/>3-2</td>
+                            </tr>
+                            <tr>
+                                <td>21a0</td>
+                            </tr>
+                            
+                            <tr>
+                                <td>21c0</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">23d8<br/>5-4</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">23d8<br/>7-6</td>
+                                <td rowspan=2 colspan=2>23d9<br/>5-4</td>
+                                <td rowspan=2 colspan=2>23d9<br/>7-6</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">23da<br/>5-4</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">23da<br/>7-6</td>
+                                <td rowspan=2 colspan=2>23db<br/>5-4</td>
+                                <td rowspan=2 colspan=2>23db<br/>7-6</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">23dc<br/>5-4</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">23dc<br/>7-6</td>
+                                <td rowspan=2 colspan=2>23dd<br/>5-4</td>
+                                <td rowspan=2 colspan=2>23dd<br/>7-6</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">23de<br/>5-4</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">23de<br/>7-6</td>
+                                <td rowspan=2 colspan=2>23df<br/>5-4</td>
+                                <td rowspan=2 colspan=2>23df<br/>7-6</td>
+                            </tr>
+                            <tr>
+                                <td>21e0</td>
+                            </tr>
+                            
+                            <tr>
+                                <td>2200</td>
+                                <td rowspan=2 colspan=2>23e0<br/>1-0</td>
+                                <td rowspan=2 colspan=2>23e0<br/>3-2</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">23e1<br/>1-0</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">23e1<br/>3-2</td>
+                                <td rowspan=2 colspan=2>23e2<br/>1-0</td>
+                                <td rowspan=2 colspan=2>23e2<br/>3-2</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">23e3<br/>1-0</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">23e3<br/>3-2</td>
+                                <td rowspan=2 colspan=2>23e4<br/>1-0</td>
+                                <td rowspan=2 colspan=2>23e4<br/>3-2</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">23e5<br/>1-0</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">23e5<br/>3-2</td>
+                                <td rowspan=2 colspan=2>23e6<br/>1-0</td>
+                                <td rowspan=2 colspan=2>23e6<br/>3-2</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">23e7<br/>1-0</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">23e7<br/>3-2</td>
+                            </tr>
+                            <tr>
+                                <td>2220</td>
+                            </tr>
+                            
+                            <tr>
+                                <td>2240</td>
+                                <td rowspan=2 colspan=2>23e0<br/>5-4</td>
+                                <td rowspan=2 colspan=2>23e0<br/>7-6</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">23e1<br/>5-4</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">23e1<br/>7-6</td>
+                                <td rowspan=2 colspan=2>23e2<br/>5-4</td>
+                                <td rowspan=2 colspan=2>23e2<br/>7-6</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">23e3<br/>5-4</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">23e3<br/>7-6</td>
+                                <td rowspan=2 colspan=2>23e4<br/>5-4</td>
+                                <td rowspan=2 colspan=2>23e4<br/>7-6</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">23e5<br/>5-4</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">23e5<br/>7-6</td>
+                                <td rowspan=2 colspan=2>23e6<br/>5-4</td>
+                                <td rowspan=2 colspan=2>23e6<br/>7-6</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">23e7<br/>5-4</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">23e7<br/>7-6</td>
+                            </tr>
+                            <tr>
+                                <td>2260</td>
+                            </tr>
+                            
+                            <tr>
+                                <td>2280</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">23e8<br/>1-0</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">23e8<br/>3-2</td>
+                                <td rowspan=2 colspan=2>23e9<br/>1-0</td>
+                                <td rowspan=2 colspan=2>23e9<br/>3-2</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">23ea<br/>1-0</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">23ea<br/>3-2</td>
+                                <td rowspan=2 colspan=2>23eb<br/>1-0</td>
+                                <td rowspan=2 colspan=2>23eb<br/>3-2</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">23ec<br/>1-0</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">23ec<br/>3-2</td>
+                                <td rowspan=2 colspan=2>23ed<br/>1-0</td>
+                                <td rowspan=2 colspan=2>23ed<br/>3-2</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">23ee<br/>1-0</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">23ee<br/>3-2</td>
+                                <td rowspan=2 colspan=2>23ef<br/>1-0</td>
+                                <td rowspan=2 colspan=2>23ef<br/>3-2</td>
+                            </tr>
+                            <tr>
+                                <td>22a0</td>
+                            </tr>
+                            <tr>
+                                <td>22c0</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">23e8<br/>5-4</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">23e8<br/>7-6</td>
+                                <td rowspan=2 colspan=2>23e9<br/>5-4</td>
+                                <td rowspan=2 colspan=2>23e9<br/>7-6</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">23ea<br/>5-4</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">23ea<br/>7-6</td>
+                                <td rowspan=2 colspan=2>23eb<br/>5-4</td>
+                                <td rowspan=2 colspan=2>23eb<br/>7-6</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">23ec<br/>5-4</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">23ec<br/>7-6</td>
+                                <td rowspan=2 colspan=2>23ed<br/>5-4</td>
+                                <td rowspan=2 colspan=2>23ed<br/>7-6</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">23ee<br/>5-4</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">23ee<br/>7-6</td>
+                                <td rowspan=2 colspan=2>23ef<br/>5-4</td>
+                                <td rowspan=2 colspan=2>23ef<br/>7-6</td>
+                            </tr>
+                            <tr>
+                                <td>22e0</td>
+                            </tr>
+                            
+                            <tr>
+                                <td>2300</td>
+                                <td rowspan=2 colspan=2>23f0<br/>1-0</td>
+                                <td rowspan=2 colspan=2>23f0<br/>3-2</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">23f1<br/>1-0</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">23f1<br/>3-2</td>
+                                <td rowspan=2 colspan=2>23f2<br/>1-0</td>
+                                <td rowspan=2 colspan=2>23f2<br/>3-2</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">23f3<br/>1-0</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">23f3<br/>3-2</td>
+                                <td rowspan=2 colspan=2>23f4<br/>1-0</td>
+                                <td rowspan=2 colspan=2>23f4<br/>3-2</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">23f5<br/>1-0</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">23f5<br/>3-2</td>
+                                <td rowspan=2 colspan=2>23f6<br/>1-0</td>
+                                <td rowspan=2 colspan=2>23f6<br/>3-2</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">23f7<br/>1-0</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">23f7<br/>3-2</td>
+                            </tr>
+                            <tr>
+                                <td>2320</td>
+                            </tr>
+                            
+                            <tr>
+                                <td>2340</td>
+                                <td rowspan=2 colspan=2>23f0<br/>5-4</td>
+                                <td rowspan=2 colspan=2>23f0<br/>7-6</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">23f1<br/>5-4</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">23f1<br/>7-6</td>
+                                <td rowspan=2 colspan=2>23f2<br/>5-4</td>
+                                <td rowspan=2 colspan=2>23f2<br/>7-6</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">23f3<br/>5-4</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">23f3<br/>7-6</td>
+                                <td rowspan=2 colspan=2>23f4<br/>5-4</td>
+                                <td rowspan=2 colspan=2>23f4<br/>7-6</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">23f5<br/>5-4</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">23f5<br/>7-6</td>
+                                <td rowspan=2 colspan=2>23f6<br/>5-4</td>
+                                <td rowspan=2 colspan=2>23f6<br/>7-6</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">23f7<br/>5-4</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">23f7<br/>7-6</td>
+                            </tr>
+                            <tr>
+                                <td>2360</td>
+                            </tr>
+                            
+                            <tr>
+                                <td>2380</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">23f8<br/>1-0</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">23f8<br/>3-2</td>
+                                <td rowspan=2 colspan=2>23f9<br/>1-0</td>
+                                <td rowspan=2 colspan=2>23f9<br/>3-2</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">23fa<br/>1-0</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">23fa<br/>3-2</td>
+                                <td rowspan=2 colspan=2>23fb<br/>1-0</td>
+                                <td rowspan=2 colspan=2>23fb<br/>3-2</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">23fc<br/>1-0</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">23fc<br/>3-2</td>
+                                <td rowspan=2 colspan=2>23fd<br/>1-0</td>
+                                <td rowspan=2 colspan=2>23fd<br/>3-2</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">23fe<br/>1-0</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">23fe<br/>3-2</td>
+                                <td rowspan=2 colspan=2>23ff<br/>1-0</td>
+                                <td rowspan=2 colspan=2>23ff<br/>3-2</td>
+                            </tr>
+                            <tr>
+                                <td>23a0</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <!-- =============================================================================  -->
+                <div>
+                    <table class="name-table">
+                        <caption>ネーム/属性テーブル1</caption>
+                        <tbody>
+                            <tr>
+                                <td>-</td>
+                                <td colspan="2">00</td>
+                                <td colspan="2">01</td>
+                                <td colspan="2">02</td>
+                                <td colspan="2">03</td>
+                                <td colspan="2">04</td>
+                                <td colspan="2">05</td>
+                                <td colspan="2">06</td>
+                                <td colspan="2">07</td>
+                                <td colspan="2">08</td>
+                                <td colspan="2">09</td>
+                                <td colspan="2">0a</td>
+                                <td colspan="2">0b</td>
+                                <td colspan="2">0c</td>
+                                <td colspan="2">0d</td>
+                                <td colspan="2">0e</td>
+                                <td colspan="2">0f</td>
+                            </tr>
+                            <tr>
+                                <td>-</td>
+                                <td>00</td>
+                                <td>01</td>
+                                <td>02</td>
+                                <td>03</td>
+                                <td>04</td>
+                                <td>05</td>
+                                <td>06</td>
+                                <td>07</td>
+                                <td>08</td>
+                                <td>09</td>
+                                <td>0a</td>
+                                <td>0b</td>
+                                <td>0c</td>
+                                <td>0d</td>
+                                <td>0e</td>
+                                <td>0f</td>
+                                <td>10</td>
+                                <td>11</td>
+                                <td>12</td>
+                                <td>13</td>
+                                <td>14</td>
+                                <td>15</td>
+                                <td>16</td>
+                                <td>17</td>
+                                <td>18</td>
+                                <td>19</td>
+                                <td>1a</td>
+                                <td>1b</td>
+                                <td>1c</td>
+                                <td>1d</td>
+                                <td>1e</td>
+                                <td>1f</td>
+                            </tr>
+                            
+                            <tr>
+                                <td>2400</td>
+                                <td rowspan=2 colspan=2>27c0<br/>1-0</td>
+                                <td rowspan=2 colspan=2>27c0<br/>3-2</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">27c1<br/>1-0</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">27c1<br/>3-2</td>
+                                <td rowspan=2 colspan=2>27c2<br/>1-0</td>
+                                <td rowspan=2 colspan=2>27c2<br/>3-2</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">27c3<br/>1-0</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">27c3<br/>3-2</td>
+                                <td rowspan=2 colspan=2>27c4<br/>1-0</td>
+                                <td rowspan=2 colspan=2>27c4<br/>3-2</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">27c5<br/>1-0</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">27c5<br/>3-2</td>
+                                <td rowspan=2 colspan=2>27c6<br/>1-0</td>
+                                <td rowspan=2 colspan=2>27c6<br/>3-2</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">27c7<br/>1-0</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">27c7<br/>3-2</td>
+                            </tr>
+                            <tr>
+                                <td>2420</td>
+                            </tr>
+                            
+                            <tr>
+                                <td>2440</td>
+                                <td rowspan=2 colspan=2>27c0<br/>5-4</td>
+                                <td rowspan=2 colspan=2>27c0<br/>7-6</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">27c1<br/>5-4</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">27c1<br/>7-6</td>
+                                <td rowspan=2 colspan=2>27c2<br/>5-4</td>
+                                <td rowspan=2 colspan=2>27c2<br/>7-6</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">27c3<br/>5-4</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">27c3<br/>7-6</td>
+                                <td rowspan=2 colspan=2>27c4<br/>5-4</td>
+                                <td rowspan=2 colspan=2>27c4<br/>7-6</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">27c5<br/>5-4</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">27c5<br/>7-6</td>
+                                <td rowspan=2 colspan=2>27c6<br/>5-4</td>
+                                <td rowspan=2 colspan=2>27c6<br/>7-6</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">27c7<br/>5-4</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">27c7<br/>7-6</td>
+                            </tr>
+                            <tr>
+                                <td>2460</td>
+                            </tr>
+                            
+                            <tr>
+                                <td>2480</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">27c8<br/>1-0</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">27c8<br/>3-2</td>
+                                <td rowspan=2 colspan=2>27c9<br/>1-0</td>
+                                <td rowspan=2 colspan=2>27c9<br/>3-2</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">27ca<br/>1-0</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">27ca<br/>3-2</td>
+                                <td rowspan=2 colspan=2>27cb<br/>1-0</td>
+                                <td rowspan=2 colspan=2>27cb<br/>3-2</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">27cc<br/>1-0</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">27cc<br/>3-2</td>
+                                <td rowspan=2 colspan=2>27cd<br/>1-0</td>
+                                <td rowspan=2 colspan=2>27cd<br/>3-2</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">27ce<br/>1-0</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">27ce<br/>3-2</td>
+                                <td rowspan=2 colspan=2>27cf<br/>1-0</td>
+                                <td rowspan=2 colspan=2>27cf<br/>3-2</td>
+                            </tr>
+                            <tr>
+                                <td>24a0</td>
+                            </tr>
+                            
+                            <tr>
+                                <td>24c0</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">27c8<br/>5-4</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">27c8<br/>7-6</td>
+                                <td rowspan=2 colspan=2>27c9<br/>5-4</td>
+                                <td rowspan=2 colspan=2>27c9<br/>7-6</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">27ca<br/>5-4</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">27ca<br/>7-6</td>
+                                <td rowspan=2 colspan=2>27cb<br/>5-4</td>
+                                <td rowspan=2 colspan=2>27cb<br/>7-6</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">27cc<br/>5-4</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">27cc<br/>7-6</td>
+                                <td rowspan=2 colspan=2>27cd<br/>5-4</td>
+                                <td rowspan=2 colspan=2>27cd<br/>7-6</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">27ce<br/>5-4</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">27ce<br/>7-6</td>
+                                <td rowspan=2 colspan=2>27cf<br/>5-4</td>
+                                <td rowspan=2 colspan=2>27cf<br/>7-6</td>
+                            </tr>
+                            <tr>
+                                <td>24e0</td>
+                            </tr>
+                            
+                            <tr>
+                                <td>2500</td>
+                                <td rowspan=2 colspan=2>27d0<br/>1-0</td>
+                                <td rowspan=2 colspan=2>27d0<br/>3-2</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">27d1<br/>1-0</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">27d1<br/>3-2</td>
+                                <td rowspan=2 colspan=2>27d2<br/>1-0</td>
+                                <td rowspan=2 colspan=2>27d2<br/>3-2</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">27d3<br/>1-0</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">27d3<br/>3-2</td>
+                                <td rowspan=2 colspan=2>27d4<br/>1-0</td>
+                                <td rowspan=2 colspan=2>27d4<br/>3-2</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">27d5<br/>1-0</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">27d5<br/>3-2</td>
+                                <td rowspan=2 colspan=2>27d6<br/>1-0</td>
+                                <td rowspan=2 colspan=2>27d6<br/>3-2</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">27d7<br/>1-0</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">27d7<br/>3-2</td>
+                            </tr>
+                            <tr>
+                                <td>2520</td>
+                            </tr>
+                            
+                            <tr>
+                                <td>2540</td>
+                                <td rowspan=2 colspan=2>27d0<br/>5-4</td>
+                                <td rowspan=2 colspan=2>27d0<br/>7-6</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">27d1<br/>5-4</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">27d1<br/>7-6</td>
+                                <td rowspan=2 colspan=2>27d2<br/>5-4</td>
+                                <td rowspan=2 colspan=2>27d2<br/>7-6</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">27d3<br/>5-4</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">27d3<br/>7-6</td>
+                                <td rowspan=2 colspan=2>27d4<br/>5-4</td>
+                                <td rowspan=2 colspan=2>27d4<br/>7-6</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">27d5<br/>5-4</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">27d5<br/>7-6</td>
+                                <td rowspan=2 colspan=2>27d6<br/>5-4</td>
+                                <td rowspan=2 colspan=2>27d6<br/>7-6</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">27d7<br/>5-4</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">27d7<br/>7-6</td>
+                            </tr>
+                            <tr>
+                                <td>2560</td>
+                            </tr>
+                            
+                            <tr>
+                                <td>2580</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">27d8<br/>1-0</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">27d8<br/>3-2</td>
+                                <td rowspan=2 colspan=2>27d9<br/>1-0</td>
+                                <td rowspan=2 colspan=2>27d9<br/>3-2</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">27da<br/>1-0</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">27da<br/>3-2</td>
+                                <td rowspan=2 colspan=2>27db<br/>1-0</td>
+                                <td rowspan=2 colspan=2>27db<br/>3-2</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">27dc<br/>1-0</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">27dc<br/>3-2</td>
+                                <td rowspan=2 colspan=2>27dd<br/>1-0</td>
+                                <td rowspan=2 colspan=2>27dd<br/>3-2</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">27de<br/>1-0</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">27de<br/>3-2</td>
+                                <td rowspan=2 colspan=2>27df<br/>1-0</td>
+                                <td rowspan=2 colspan=2>27df<br/>3-2</td>
+                            </tr>
+                            <tr>
+                                <td>25a0</td>
+                            </tr>
+                            
+                            <tr>
+                                <td>25c0</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">27d8<br/>5-4</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">27d8<br/>7-6</td>
+                                <td rowspan=2 colspan=2>27d9<br/>5-4</td>
+                                <td rowspan=2 colspan=2>27d9<br/>7-6</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">27da<br/>5-4</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">27da<br/>7-6</td>
+                                <td rowspan=2 colspan=2>27db<br/>5-4</td>
+                                <td rowspan=2 colspan=2>27db<br/>7-6</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">27dc<br/>5-4</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">27dc<br/>7-6</td>
+                                <td rowspan=2 colspan=2>27dd<br/>5-4</td>
+                                <td rowspan=2 colspan=2>27dd<br/>7-6</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">27de<br/>5-4</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">27de<br/>7-6</td>
+                                <td rowspan=2 colspan=2>27df<br/>5-4</td>
+                                <td rowspan=2 colspan=2>27df<br/>7-6</td>
+                            </tr>
+                            <tr>
+                                <td>25e0</td>
+                            </tr>
+                            
+                            <tr>
+                                <td>2600</td>
+                                <td rowspan=2 colspan=2>27e0<br/>1-0</td>
+                                <td rowspan=2 colspan=2>27e0<br/>3-2</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">27e1<br/>1-0</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">27e1<br/>3-2</td>
+                                <td rowspan=2 colspan=2>27e2<br/>1-0</td>
+                                <td rowspan=2 colspan=2>27e2<br/>3-2</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">27e3<br/>1-0</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">27e3<br/>3-2</td>
+                                <td rowspan=2 colspan=2>27e4<br/>1-0</td>
+                                <td rowspan=2 colspan=2>27e4<br/>3-2</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">27e5<br/>1-0</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">27e5<br/>3-2</td>
+                                <td rowspan=2 colspan=2>27e6<br/>1-0</td>
+                                <td rowspan=2 colspan=2>27e6<br/>3-2</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">27e7<br/>1-0</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">27e7<br/>3-2</td>
+                            </tr>
+                            <tr>
+                                <td>2620</td>
+                            </tr>
+                            
+                            <tr>
+                                <td>2640</td>
+                                <td rowspan=2 colspan=2>27e0<br/>5-4</td>
+                                <td rowspan=2 colspan=2>27e0<br/>7-6</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">27e1<br/>5-4</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">27e1<br/>7-6</td>
+                                <td rowspan=2 colspan=2>27e2<br/>5-4</td>
+                                <td rowspan=2 colspan=2>27e2<br/>7-6</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">27e3<br/>5-4</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">27e3<br/>7-6</td>
+                                <td rowspan=2 colspan=2>27e4<br/>5-4</td>
+                                <td rowspan=2 colspan=2>27e4<br/>7-6</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">27e5<br/>5-4</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">27e5<br/>7-6</td>
+                                <td rowspan=2 colspan=2>27e6<br/>5-4</td>
+                                <td rowspan=2 colspan=2>27e6<br/>7-6</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">27e7<br/>5-4</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">27e7<br/>7-6</td>
+                            </tr>
+                            <tr>
+                                <td>2660</td>
+                            </tr>
+                            
+                            <tr>
+                                <td>2680</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">27e8<br/>1-0</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">27e8<br/>3-2</td>
+                                <td rowspan=2 colspan=2>27e9<br/>1-0</td>
+                                <td rowspan=2 colspan=2>27e9<br/>3-2</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">27ea<br/>1-0</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">27ea<br/>3-2</td>
+                                <td rowspan=2 colspan=2>27eb<br/>1-0</td>
+                                <td rowspan=2 colspan=2>27eb<br/>3-2</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">27ec<br/>1-0</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">27ec<br/>3-2</td>
+                                <td rowspan=2 colspan=2>27ed<br/>1-0</td>
+                                <td rowspan=2 colspan=2>27ed<br/>3-2</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">27ee<br/>1-0</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">27ee<br/>3-2</td>
+                                <td rowspan=2 colspan=2>27ef<br/>1-0</td>
+                                <td rowspan=2 colspan=2>27ef<br/>3-2</td>
+                            </tr>
+                            <tr>
+                                <td>26a0</td>
+                            </tr>
+                            <tr>
+                                <td>26c0</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">27e8<br/>5-4</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">27e8<br/>7-6</td>
+                                <td rowspan=2 colspan=2>27e9<br/>5-4</td>
+                                <td rowspan=2 colspan=2>27e9<br/>7-6</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">27ea<br/>5-4</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">27ea<br/>7-6</td>
+                                <td rowspan=2 colspan=2>27eb<br/>5-4</td>
+                                <td rowspan=2 colspan=2>27eb<br/>7-6</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">27ec<br/>5-4</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">27ec<br/>7-6</td>
+                                <td rowspan=2 colspan=2>27ed<br/>5-4</td>
+                                <td rowspan=2 colspan=2>27ed<br/>7-6</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">27ee<br/>5-4</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">27ee<br/>7-6</td>
+                                <td rowspan=2 colspan=2>27ef<br/>5-4</td>
+                                <td rowspan=2 colspan=2>27ef<br/>7-6</td>
+                            </tr>
+                            <tr>
+                                <td>26e0</td>
+                            </tr>
+                            
+                            <tr>
+                                <td>2700</td>
+                                <td rowspan=2 colspan=2>270<br/>1-0</td>
+                                <td rowspan=2 colspan=2>27f0<br/>3-2</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">27f1<br/>1-0</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">27f1<br/>3-2</td>
+                                <td rowspan=2 colspan=2>27f2<br/>1-0</td>
+                                <td rowspan=2 colspan=2>27f2<br/>3-2</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">27f3<br/>1-0</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">27f3<br/>3-2</td>
+                                <td rowspan=2 colspan=2>27f4<br/>1-0</td>
+                                <td rowspan=2 colspan=2>27f4<br/>3-2</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">27f5<br/>1-0</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">27f5<br/>3-2</td>
+                                <td rowspan=2 colspan=2>27f6<br/>1-0</td>
+                                <td rowspan=2 colspan=2>27f6<br/>3-2</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">27f7<br/>1-0</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">27f7<br/>3-2</td>
+                            </tr>
+                            <tr>
+                                <td>2720</td>
+                            </tr>
+                            
+                            <tr>
+                                <td>2740</td>
+                                <td rowspan=2 colspan=2>27f0<br/>5-4</td>
+                                <td rowspan=2 colspan=2>27f0<br/>7-6</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">27f1<br/>5-4</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">27f1<br/>7-6</td>
+                                <td rowspan=2 colspan=2>27f2<br/>5-4</td>
+                                <td rowspan=2 colspan=2>27f2<br/>7-6</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">27f3<br/>5-4</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">27f3<br/>7-6</td>
+                                <td rowspan=2 colspan=2>27f4<br/>5-4</td>
+                                <td rowspan=2 colspan=2>27f4<br/>7-6</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">27f5<br/>5-4</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">27f5<br/>7-6</td>
+                                <td rowspan=2 colspan=2>27f6<br/>5-4</td>
+                                <td rowspan=2 colspan=2>27f6<br/>7-6</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">27f7<br/>5-4</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">27f7<br/>7-6</td>
+                            </tr>
+                            <tr>
+                                <td>2760</td>
+                            </tr>
+                            
+                            <tr>
+                                <td>2780</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">27f8<br/>1-0</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">27f8<br/>3-2</td>
+                                <td rowspan=2 colspan=2>27f9<br/>1-0</td>
+                                <td rowspan=2 colspan=2>27f9<br/>3-2</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">27fa<br/>1-0</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">27fa<br/>3-2</td>
+                                <td rowspan=2 colspan=2>27fb<br/>1-0</td>
+                                <td rowspan=2 colspan=2>27fb<br/>3-2</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">27fc<br/>1-0</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">27fc<br/>3-2</td>
+                                <td rowspan=2 colspan=2>27fd<br/>1-0</td>
+                                <td rowspan=2 colspan=2>27fd<br/>3-2</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">27fe<br/>1-0</td>
+                                <td rowspan=2 colspan=2 class="cell-highlite">27fe<br/>3-2</td>
+                                <td rowspan=2 colspan=2>27ff<br/>1-0</td>
+                                <td rowspan=2 colspan=2>27ff<br/>3-2</td>
+                            </tr>
+                            <tr>
+                                <td>27a0</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section> 
+
+        <!-- ========================================================================== -->
+        <!-- 16進変換等 -->
+        <section id="hex-tab" class="hide">
+            <div class="flex two">
+                <div>
+                    <table class="primary">
+                        <caption>進数変換</caption>
+                        <thead>
+                            <tr>
+                                <th>10進数</th>
+                                <th>16進数</th>
+                                <th>2進数</th>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>1</td>
+                                <td>$01</td>
+                                <td>%00000001</td>
+                            </tr>
+                            <tr>
+                                <td>2</td>
+                                <td>$02</td>
+                                <td>%00000010</td>
+                            </tr>
+                            <tr>
+                                <td>3</td>
+                                <td>$03</td>
+                                <td>%00000011</td>
+                            </tr>
+                            <tr>
+                                <td>4</td>
+                                <td>$04</td>
+                                <td>%00000100</td>
+                            </tr>
+                            <tr>
+                                <td>5</td>
+                                <td>$05</td>
+                                <td>%00000101</td>
+                            </tr>
+                            <tr>
+                                <td>6</td>
+                                <td>$06</td>
+                                <td>%00000110</td>
+                            </tr>
+                            <tr>
+                                <td>7</td>
+                                <td>$07</td>
+                                <td>%00000111</td>
+                            </tr>
+                            <tr>
+                                <td>8</td>
+                                <td>$08</td>
+                                <td>%00001000</td>
+                            </tr>
+                            <tr>
+                                <td>9</td>
+                                <td>$09</td>
+                                <td>%00001001</td>
+                            </tr>
+                            <tr>
+                                <td>10</td>
+                                <td>$0a</td>
+                                <td>%00001010</td>
+                            </tr>
+                            <tr>
+                                <td>11</td>
+                                <td>$0b</td>
+                                <td>%00001011</td>
+                            </tr>
+                            <tr>
+                                <td>12</td>
+                                <td>$0c</td>
+                                <td>%00001100</td>
+                            </tr>
+                            <tr>
+                                <td>13</td>
+                                <td>$0d</td>
+                                <td>%00001101</td>
+                            </tr>
+                            <tr>
+                                <td>14</td>
+                                <td>$0e</td>
+                                <td>%00001110</td>
+                            </tr>
+                            <tr>
+                                <td>15</td>
+                                <td>$0f</td>
+                                <td>%00001111</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div>
+                    <table class="primary">
+                        <caption>変換ツール</caption>
+                        <tbody>
+                            <tr>
+                                <th>10進</th>
+                                <td style="width:200px;"><input type="text" name="conv-ten" id="conv-ten" size="4"></td>
+                            </tr>
+                            <tr>
+                                <th>16進</th>
+                                <td style="width:200px;"><span id="conv-hex"></td>
+                            </tr>
+                            <tr>
+                                <th>2進</th>
+                                <td style="width:200px;"><span id="conv-bin"></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section> 
+
     </main>
 <script type="module">
 $(() => {
     $('.tab-change').on('click', function() {
         $('section').addClass('hide');
         $("#"+$(this).attr('id')+'-tab').removeClass('hide');
+    });
+
+    $('#conv-ten').on('keyup', function() {
+        const num = $(this).val();
+        if (isNaN(num)) {
+            $('#conv-hex').text('');
+            $('#conv-bin').text('');
+            return;
+        }
+        $('#conv-hex').text('$' + Number(num).toString(16));
+        $('#conv-bin').text('%' + Number(num).toString(2));
+        
     });
 });
 </script>
