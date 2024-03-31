@@ -136,15 +136,51 @@ bgmove:
     lda #%00001000
     and z_controller_1
     beq keycheck_down ; 結果が0なら押されてない判定
-    ; 縦スクロールは後ほど
-    jmp keycheckend
+
+    ; スクロール指示
+    lda #%00000010
+    sta z_frame_operation
+    
+    ; y座標を1引く
+    lda z_y
+    sec
+    sbc #$01
+    sta z_y
+    bcs keycheck_down ; ボローが発生しなければそのまま処理
+    
+    inc z_debug
+    ; ボローしたらname_table切り替え
+    lda z_name_index
+    eor #$02
+    sta z_name_index
+    ; y座標を一番下に
+    lda #$ef
+    sta z_y
+
 
 keycheck_down:
 ;DOWNKEYdown:
     lda #%00000100
     and z_controller_1
     beq keycheck_left ; 結果が0なら押されてない判定
-    ; 縦スクロールは後ほど
+    
+    ; スクロール指示
+    lda #%00000010
+    sta z_frame_operation
+
+    ; y座標を1足す
+    inc z_y
+    lda z_y
+    cmp #$f0 ; yの最大を超えているかチェック    
+    bcc keycheckend ; 超えていなければOK
+    
+    ; キャリーしたらname_table切り替え z_xは自動的に$00になるのでリセット不要
+    lda z_name_index
+    eor #$02
+    sta z_name_index
+
+    lda #$00
+    sta z_y ; y座標をリセット
     jmp keycheckend
 
 keycheck_left:
@@ -289,11 +325,14 @@ subend:
     clc
     lda z_world_x
     adc #$10 ; 現在xから16先の情報が必要
-    cmp #$30 ; マップ右側に達していたらリセット
+    cmp #$30 ; マップ右側に達していなければそのまま処理
     bcc skip_over
-    lda #$00
+    ; マップインデックスオーバーの場合はオーバー分を減じる
+    sec
+    sbc #$30
 skip_over:
     ; ロード位置を指定しメモリにマップロード
+    sta z_debug
     sta z_load_index
     jsr load_vetrical
     
@@ -720,7 +759,7 @@ maprow:
 ; 変数定義
 .org $0000 ; ゼロページ領域
 z_frame: .byte $00 ; VBlank毎にカウントアップ
-z_frame_processed: .byte $00 ; 描画準備ができているか0:未処理、1:銃日済
+z_frame_processed: .byte $00 ; 描画準備ができているか0:未処理、1:準備済
 z_frame_operation: .byte $00 ; VBlank中にやってほしいこと bit0:スクロール bit1:描画
 z_controller_1: .byte $00 ; コントローラー1入力
 z_chip: .byte $00   ; 処理中のマップ情報
