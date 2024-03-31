@@ -74,11 +74,11 @@ copypal:
 
 ; ---------------------------------------------------------------------------------
 ; 無限ループ
-infinityLoop:
+infinity_loop:
 
     ; 処理済のフレームかチェック
     lda z_frame_processed
-    bne infinityLoop ; 1なら処理済
+    bne infinity_loop ; 1なら処理済
 
     lda #$01
     sta z_auto_move ; 自動移動中かの判定 一旦onに
@@ -118,7 +118,7 @@ keycheck_loop:
     bne keycheck_loop ; 8個読み取るまでループ
     
     cmp z_controller_1
-    beq infinityLoop ; なにも押されていないならばループに戻る
+    beq infinity_loop ; なにも押されていないならばループに戻る
     
     ; 以降変更なし
     ; bit:キー
@@ -161,7 +161,7 @@ keycheck_left:
     bne keycheck_l_scroll ; きりのよいところからの移動でなければスクロールのみ
     
     ; きりのよい座標から左に移動する場合はメモリーに次に表示する内容を展開
-    jsr loadLeft
+    jsr load_left
     
     ; スクロールと描画指示
     lda #%00000011
@@ -195,7 +195,7 @@ keycheck_right:
     bne keycheck_r_scroll ; きりのよいところからの移動でなければスクロールのみ
     
     ; きりのよい座標から右に移動する場合はメモリーに次に表示する内容を展開
-    jsr loadRight
+    jsr load_right
     
     ; スクロールと描画指示
     lda #%00000011
@@ -227,14 +227,14 @@ keycheckend:
     lda #$01
     sta z_frame_processed
 
-    jmp infinityLoop
+    jmp infinity_loop
 
 .endproc
 
 
 ; ---------------------------------------------------------------------------
 ; 左側方向のマップ情報を取得
-.proc loadLeft
+.proc load_left
 
     ; 先にworld座標を1減算し、表示したいインデックスに移動しておく
     lda z_world_x
@@ -248,81 +248,10 @@ dec_world_x:
     dec z_world_x
 
 world_end:
-
-    ; 変数初期化
-    lda #$00
-    sta z_map_index
-
-    ; 現在のz_world_xが描画したい座標
     lda z_world_x
-    and #%00000111
-    sta z_tmp
-    inc z_tmp
-    sta z_debug
-    
-    lda z_world_x
-    and #%11111000 ; 上位ビットがmapのインデックス
-    lsr
-    lsr
-    lsr
-    sta z_index ; マップの開始indexを退避
-
-    ; 取得するチップ数
-    ldy #$0f
-load_chip:
-    ldx z_index
-    lda map, x
-    ldx z_tmp
-shift_chip:
-    asl ; ビットシフト
-    dex
-    bne shift_chip
-    ; Cにマップの情報が入っている
-    bcc floor
-    
-    ; 壁
-    ldx z_map_index
-    lda #$04
-    sta w_map, x
-    inx
-    lda #$05
-    sta w_map, x
-    inx
-    lda #$06
-    sta w_map, x
-    inx
-    lda #$07
-    sta w_map, x
-    inx
-    jmp end_chip
-
-floor:
-    ldx z_map_index
-    lda #$01
-    sta w_map, x
-    inx
-    lda #$01
-    sta w_map, x
-    inx
-    lda #$01
-    sta w_map, x
-    inx
-    lda #$01
-    sta w_map, x
-    inx
-
-end_chip:
-    ; 書き込みインデックスを保存
-    stx z_map_index
-    ; mapのインデックを6進める
-    inc z_index
-    inc z_index
-    inc z_index
-    inc z_index
-    inc z_index
-    inc z_index
-    dey
-    bne load_chip ;必要数チップを披露
+    ; マップ読み込み開始位置を指定し、マップロード
+    sta z_load_index
+    jsr load_vetrical
     
     ; 書き込み開始位置判定
     ; 先にlowを2引く
@@ -349,93 +278,24 @@ subend:
     lda z_current_left_low
     sta z_name_low
 
-    
-    ;inc z_debug
     rts
 .endproc
 
 ; ---------------------------------------------------------------------------
 ; 右側方向のマップ情報を取得
-.proc loadRight
-    ; 変数初期化
-    lda #$00
-    sta z_map_index
-
-    lda z_world_x
-    and #%00000111
-    sta z_tmp ; 下位ビットがビットシフト数
-    inc z_tmp
-    lda z_world_x
-    and #%11111000 ; 上位ビットがmapのインデックス
-    lsr
-    lsr
-    lsr
+.proc load_right
+    ; 読み出したいxインデックス判定
+    ; 座標を1加算
     clc
-    adc #$02
-    cmp #$06
-    bcc skip_reset
-    sec
-    sbc #$06
-
-skip_reset:
-    sta z_index ; マップの開始indexを退避
-
-    ; 取得するチップ数
-    ldy #$0f
-load_chip:
-    ldx z_index
-    lda map, x
-    ldx z_tmp
-shift_chip:
-    asl ; ビットシフト
-    dex
-    bne shift_chip
-    ; Cにマップの情報が入っている
-    bcc floor
-    
-    ; 壁
-    ldx z_map_index
-    lda #$04
-    sta w_map, x
-    inx
-    lda #$05
-    sta w_map, x
-    inx
-    lda #$06
-    sta w_map, x
-    inx
-    lda #$07
-    sta w_map, x
-    inx
-    jmp end_chip
-
-floor:
-    ldx z_map_index
-    lda #$01
-    sta w_map, x
-    inx
-    lda #$01
-    sta w_map, x
-    inx
-    lda #$01
-    sta w_map, x
-    inx
-    lda #$01
-    sta w_map, x
-    inx
-
-end_chip:
-    ; 書き込みインデックスを保存
-    stx z_map_index
-    ; mapのインデックを6進める
-    inc z_index
-    inc z_index
-    inc z_index
-    inc z_index
-    inc z_index
-    inc z_index
-    dey
-    bne load_chip ;必要数チップを披露
+    lda z_world_x
+    adc #$10 ; 現在xから16先の情報が必要
+    cmp #$30 ; マップ右側に達していたらリセット
+    bcc skip_over
+    lda #$00
+skip_over:
+    ; ロード位置を指定しメモリにマップロード
+    sta z_load_index
+    jsr load_vetrical
     
     ; 書き込み開始位置判定
     ; 現在のhighを参照 $20なら$24, $24なら$20に書き込む
@@ -472,9 +332,86 @@ skip_left_reest:
 skip:
     sta z_world_x
 
-    
-    ;inc z_debug
     rts
+.endproc
+
+
+; ---------------------------------------------------------------------------
+; z_load_indexで指定された箇所の垂直地図情報を取得する
+.proc load_vetrical
+    ; 読み出し座標取得
+    lda z_load_index
+    and #%00000111
+    sta z_tmp ; 下位ビットがビットシフト数
+    inc z_tmp
+    lda z_load_index
+    and #%11111000 ; 上位ビットがmapのインデックス
+    lsr ; 3つビットシフト
+    lsr
+    lsr
+    sta z_index ; マップの開始indexを退避
+
+    ; 書き込んだインデックスリセット
+    lda #$00
+    sta z_map_index
+
+    ; 取得するチップ数
+    ldy #$0f
+load_chip:
+    ldx z_index ; マップ読み込みインデックス復元
+    lda map, x
+    ldx z_tmp
+shift_chip:
+    asl ; ビットシフト
+    dex
+    bne shift_chip
+    ; Cにマップの情報が入っている
+    bcc floor
+    
+    ; 壁
+    ldx z_map_index
+    lda #$04
+    sta w_map, x
+    inx
+    lda #$05
+    sta w_map, x
+    inx
+    lda #$06
+    sta w_map, x
+    inx
+    lda #$07
+    sta w_map, x
+    inx
+    jmp end_chip
+
+floor: ; 全てのチップが$01なので、4回書き込む
+    ldx z_map_index
+    lda #$01
+    sta w_map, x
+    inx
+    sta w_map, x
+    inx
+    sta w_map, x
+    inx
+    sta w_map, x
+    inx
+
+end_chip:
+    ; 書き込みインデックスを保存
+    stx z_map_index
+    ; mapのインデックを6進める
+    inc z_index
+    inc z_index
+    inc z_index
+    inc z_index
+    inc z_index
+    inc z_index
+    dey
+    bne load_chip ;必要数チップを披露
+    
+    ; メモリへのマップ展開終了
+    rts
+
 .endproc
 
 
@@ -802,6 +739,7 @@ z_name_low: .byte $00
 ; -- 10 --
 z_current_left_high: .byte $00 ; 現在左側の座標情報(high)
 z_current_left_low: .byte $00 ; 現在左側の座標情報(low)
+z_load_index: .byte $00 ; ロードするマップ座標
 z_map_index: .byte $00 ; マップ読み込み時の退避領域
 z_tmp: .byte $00
 ; スタック領域は$0100~$01ff
