@@ -167,11 +167,12 @@ keycheckend:
     ; きりのよい座標から左に移動する場合はメモリーに次に表示する内容を展開
     ; 現在座標から1つ戻す
     lda z_world_x
-    sta z_debug
+    sta z_arg1
     jsr sub_x1
     ; 減算結果をx座標指定
     lda z_return
     sta z_arg1
+    
     
     ; yは現在座標
     lda z_world_y
@@ -185,7 +186,7 @@ keycheckend:
     lda z_return
     sec
     sbc #$01
-    bcc another ; ボローが発生しなければそのまま処理
+    bcc turn_name ; ボローが発生しなければそのまま処理
 
     ; 現在と同じネームテーブルに書き込む
     sta z_name_low
@@ -195,9 +196,8 @@ keycheckend:
     beq name0 ; bit0が1ならname1
     jmp name1
 
-another:
-    inc z_debug
-    lda #$1e
+turn_name:
+    lda #$0f
     sta z_name_low
     ; bit0でどちらのテーブルか判定
     lda #$01
@@ -215,9 +215,17 @@ name1:
 set_name_high:
     sta z_name_high
 
+    ; 座標は16pxで1と計算している
+    ; 書き込みx座標は8pxで1増加するので2倍する
+    lda z_name_low
+    clc
+    adc z_name_low
+    ; 書き込みlow確定
+    sta z_name_low
 
     ; 座標を引く
     lda z_world_x
+    sta z_arg1
     jsr sub_x1
     ; 加算結果をx座標指定
     lda z_return
@@ -289,13 +297,9 @@ set_name_high:
     ; 座標は16pxで1と計算している
     ; 書き込みx座標は8pxで1増加するので2倍する
     jsr get_screen_x
-    ldy #$01
-mul:
     lda z_return
     clc
     adc z_return
-    dey
-    bne mul
     ; 書き込みlow確定
     sta z_name_low
 
@@ -358,7 +362,7 @@ skip:
     sbc #$01
     bcs skip ; ボローが発生しなければそのまま処理
 
-    lda #$30 ; マップ左側に達していたらリセット
+    lda #$2f ; マップ左側に達していたらリセット
 
 skip:
     sta z_return
@@ -630,8 +634,6 @@ seek:
     inx
     asl
     jmp seek
-
-    inc z_debug
 
 found:
     asl
