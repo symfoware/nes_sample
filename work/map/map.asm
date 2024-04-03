@@ -120,6 +120,25 @@ proc2:
     ; 0:RIGHT
 
 
+; 上キー入力チェック
+    lda #%00001000
+    and z_controller_1
+    beq keycheck_down ; 押されてなければ下キーチェック
+
+    jsr move_up
+    jmp keycheckend
+
+
+; 下キー入力チェック
+keycheck_down:
+    lda #%00000100
+    and z_controller_1
+    beq keycheck_left ; 押されてなければ左キーチェック
+
+    jsr move_down
+    jmp keycheckend
+
+
 ; 左キー入力チェック    
 keycheck_left:
     lda #%00000010
@@ -152,6 +171,208 @@ keycheckend:
     rts
 .endproc
 
+
+; ---------------------------------------------------------------------------
+; 上方向への移動
+.proc move_up
+    ; スクロール指示
+    lda #%00000100
+    sta z_frame_operation
+
+    lda z_auto_move
+    bne keycheck_scroll ; きりのよいところからの移動でなければスクロールのみ
+
+    ; きりのよい座標から上に移動する場合はメモリーに次に表示する内容を展開
+    ; 現在y座標から1引く
+    lda z_world_y
+    sta z_arg1
+    jsr sub_y1
+
+    ; 減算結果をy座標指定
+    lda z_return
+    sta z_arg2
+    sta z_debug
+    
+    ; xは現在座標
+    lda z_world_x
+    sta z_arg1
+
+    ; 水平方向にマップロード
+    jsr load_horizontal
+    
+
+    ; y座標を1引く
+    lda z_world_y
+    sta z_arg1
+    jsr sub_y1
+    lda z_return
+    sta z_world_y
+
+    ; 対象ネームテーブルhighを確定
+    lda #$01
+    bit z_name_index
+    beq name0 ; bit0が1ならname1
+    jmp name1
+
+name0:
+    lda #$20
+    sta z_name_high
+    jmp name_low
+
+name1:
+    lda #$24
+    sta z_name_high
+
+name_low:
+    ; name_lowを判定
+    jsr get_screen_y
+    lda z_return
+    sec
+    sbc #$01
+    bcs no_borrow
+    lda #$0e ;ボローが起きたときはyリセット
+
+no_borrow:
+    tay
+    lda #$00
+loop:
+    clc
+    adc #$40
+    ; $40足してキャリーしなければ次のループ
+    bcc next
+    ; キャリーしたらhighを加算
+    inc z_name_high
+next:
+    dey
+    bne loop
+    
+    sta z_name_low
+
+    ; スクロールと描画指示(H)
+    lda #%00000110
+    sta z_frame_operation
+
+
+keycheck_scroll:
+    ; y座標を1引く
+    lda z_y
+    sec
+    sbc #$01
+    sta z_y
+    bcs keycheckend ; ボローが発生しなければそのまま処理
+    
+    ; ボローしたらname_table切り替え
+    lda z_name_index
+    eor #$02
+    sta z_name_index
+    ; y座標を一番下に
+    lda #$ef
+    sta z_y
+
+keycheckend:
+
+    rts
+.endproc
+
+
+
+; ---------------------------------------------------------------------------
+; 下方向への移動
+.proc move_down
+    ; スクロール指示
+    lda #%00000100
+    sta z_frame_operation
+
+    lda z_auto_move
+    bne keycheck_scroll ; きりのよいところからの移動でなければスクロールのみ
+
+    ; きりのよい座標から下に移動する場合はメモリーに次に表示する内容を展開
+    ; 現在y座標から15足す
+    lda z_world_y
+    sta z_arg1
+    lda #$0f
+    sta z_arg2
+    jsr append_y
+
+    ; 減算結果をy座標指定
+    lda z_return
+    sta z_arg2
+    
+    ; xは現在座標
+    lda z_world_x
+    sta z_arg1
+
+    ; 水平方向にマップロード
+    jsr load_horizontal
+    
+
+    ; y座標を1増加
+    lda z_world_y
+    sta z_arg1
+    lda #$01
+    sta z_arg2
+    jsr append_y
+    lda z_return
+    sta z_world_y
+
+    ; 対象ネームテーブルhighを確定
+    lda #$01
+    bit z_name_index
+    beq name0 ; bit0が1ならname1
+    jmp name1
+
+name0:
+    lda #$20
+    sta z_name_high
+    jmp name_low
+
+name1:
+    lda #$24
+    sta z_name_high
+
+name_low:
+    ; name_lowを判定
+    ; 現在yが書き込み対象(ここからいなくなるので)
+    jsr get_screen_y
+    ldy z_return
+    lda #$00
+loop:
+    clc
+    adc #$40
+    ; $40足してキャリーしなければ次のループ
+    bcc next
+    ; キャリーしたらhighを加算
+    inc z_name_high
+next:
+    dey
+    bne loop
+    
+    sta z_name_low
+
+    ; スクロールと描画指示(H)
+    lda #%00000110
+    sta z_frame_operation
+
+
+keycheck_scroll:
+    ; y座標を1足す
+    inc z_y
+    lda z_y
+    cmp #$f0 ; yの最大を超えているかチェック    
+    bcc keycheckend ; 超えていなければOK
+    
+    ; name_table切り替え
+    lda z_name_index
+    eor #$02
+    sta z_name_index
+
+    lda #$00
+    sta z_y ; y座標をリセット
+
+keycheckend:
+
+    rts
+.endproc
 
 ; ---------------------------------------------------------------------------
 ; 左方向への移動
@@ -363,6 +584,38 @@ skip:
     bcs skip ; ボローが発生しなければそのまま処理
 
     lda #$2f ; マップ左側に達していたらリセット
+
+skip:
+    sta z_return
+    rts
+.endproc
+
+
+; ---------------------------------------------------------------------------
+; オーバーフローを考慮しy座標に加算
+; arg1: 加算対象のx座標, arg2: 加算する数
+.proc append_y
+    lda z_arg1
+    clc
+    adc z_arg2
+    cmp #$1e ; マップ右側に達していたらリセット
+    bcc skip
+    sec
+    sbc #$1e
+skip:
+    sta z_return
+    rts
+.endproc
+
+; オーバーフローを考慮しy座標から1減算
+; arg1: 減算対象のx座標
+.proc sub_y1
+    lda z_arg1
+    sec
+    sbc #$01
+    bcs skip ; ボローが発生しなければそのまま処理
+
+    lda #$1d ; マップ左側に達していたらリセット
 
 skip:
     sta z_return
@@ -696,7 +949,7 @@ check_horizontal:
     bcc check_scroll ; BG描画(H)指示がなければスクロール
 
     ; 水平書き込み
-    ;jsr bg_write_horizontal
+    jsr bg_write_horizontal
 
 
 check_scroll:
@@ -734,6 +987,27 @@ vblank_end:
     rti ; VBlank割り込みから復帰 ここでは何も行わず、後の流れのrtiで処理しても良さそう
 .endproc
 
+; ---------------------------------------------------------------------------
+; 水平方向への書き込み
+.proc bg_write_horizontal
+    ; BG描画
+    lda z_name_high
+    sta $2006
+    lda z_name_low
+    sta $2006
+
+    ldy #$40
+    ldx #$00
+; 指定座標からメモリの内容を連続して書き込むだけ
+write_bg:
+    lda w_map, x
+    sta $2007
+    inx
+    dey
+    bne write_bg
+
+    rts
+.endproc
 
 ; ---------------------------------------------------------------------------
 ; 垂直方向への書き込み
@@ -826,7 +1100,7 @@ map:
     .byte %00000000, %00000000, %10000000, %00000001, %10000000, %00000001
     .byte %10000000, %00000001, %10000000, %00000001, %10000000, %00000001
 
-    .byte %10000000, %00000001, %10000000, %00000001, %10000000, %00000001
+    .byte %10000001, %10000001, %10000000, %00000001, %10000000, %00000001
     .byte %00000000, %00000001, %10000000, %00000001, %10000000, %00000001
     .byte %00000000, %00000000, %00000000, %00000000, %10000000, %00000001
     .byte %00011111, %11111000, %00001111, %11110000, %00011111, %11111000
