@@ -45,10 +45,9 @@ copypal:
     jsr load_map
 
     ; 描画位置の右端座標
-    lda #$20
-    sta z_current_left_high
     lda #$00
-    sta z_current_left_low
+    sta z_x
+    sta z_y
 
 ; BGのスクリーン表示位置設定左上にぴったり(スクロール設定)
     lda #$00
@@ -248,6 +247,9 @@ next:
     
     sta z_name_low
 
+    ; x座標の補正
+    jsr ajust_x
+
     ; スクロールと描画指示(H)
     lda #%00000110
     sta z_frame_operation
@@ -349,6 +351,9 @@ next:
     
     sta z_name_low
 
+    ; x座標の補正
+    jsr ajust_x
+
     ; スクロールと描画指示(H)
     lda #%00000110
     sta z_frame_operation
@@ -370,6 +375,20 @@ keycheck_scroll:
     sta z_y ; y座標をリセット
 
 keycheckend:
+
+    rts
+.endproc
+
+; x座標分の補正
+.proc ajust_x
+    jsr get_screen_x
+    lda z_return
+    clc
+    adc z_return
+    clc
+    adc z_name_low
+    ; 書き込みlow確定
+    sta z_name_low
 
     rts
 .endproc
@@ -443,6 +462,9 @@ set_name_high:
     adc z_name_low
     ; 書き込みlow確定
     sta z_name_low
+
+    ; y座標分の補正
+    jsr ajust_y
 
     ; 座標を引く
     lda z_world_x
@@ -524,6 +546,9 @@ set_name_high:
     ; 書き込みlow確定
     sta z_name_low
 
+    ; y座標分の補正
+    jsr ajust_y
+
     ; 座標を進める
     lda z_world_x
     sta z_arg1
@@ -557,6 +582,26 @@ keycheckend:
     rts
 .endproc
 
+; y座標分の補正
+.proc ajust_y
+    ; 現在yが書き込み対象
+    jsr get_screen_y
+    ldy z_return
+    lda z_name_low
+loop:
+    clc
+    adc #$40
+    ; $40足してキャリーしなければ次のループ
+    bcc next
+    ; キャリーしたらhighを加算
+    inc z_name_high
+next:
+    dey
+    bne loop
+    
+    sta z_name_low
+    rts
+.endproc
 
 
 ; ---------------------------------------------------------------------------
@@ -673,9 +718,9 @@ keycheck_loop:
 .proc load_map
     ;描画の開始座標設定
     lda #$20
-    sta $2006
+    sta z_name_high
     lda #$00
-    sta $2006
+    sta z_name_low
 
     ; 読み込み開始y設定
     lda #$00
@@ -687,15 +732,20 @@ vetrical:
     sta z_arg1
     jsr load_horizontal
     ; メモリに展開した内容描画
+    jsr bg_write_horizontal
 
-    ldx #$00
-    ldy #$40
-loop:
-    lda w_map, x
-    sta $2007
-    inx
-    dey
-    bne loop
+    lda z_name_low
+    clc
+    adc #$40
+    sta z_name_low
+    bcs inc_high
+    jmp end
+
+inc_high:
+    ; キャリーしたらhight1進める
+    inc z_name_high
+
+end:
 
     ; y座標を1進める
     inc z_arg2
@@ -712,14 +762,11 @@ loop:
 ; 指定座標から横16の情報を読み取り、w_mapに設定
 ; arg1: x座標, arg2:y座標
 .proc load_horizontal
-    ; 2列同時に書き込む
     lda #$00
     sta z_counter1
-    lda #$20
-    sta z_counter2
 
     lda #$10
-    sta z_counter3
+    sta z_counter2
 load:
     ; 対象座標のデータ取得
     jsr get_chip
@@ -735,10 +782,8 @@ load:
     lda #$05
     sta w_map, x
     inx
-    stx z_counter1
-
+    
     ; 2列目
-    ldx z_counter2
     lda #$06
     sta w_map, x
     inx
@@ -746,7 +791,7 @@ load:
     lda #$07
     sta w_map, x
     inx
-    stx z_counter2
+    stx z_counter1
     jmp end
 
 floor:
@@ -759,24 +804,22 @@ floor:
 
     sta w_map, x
     inx
-    stx z_counter1
 
     ; 2列目
-    ldx z_counter2
     sta w_map, x
     inx
 
     sta w_map, x
     inx
-    stx z_counter2
+    stx z_counter1
     jmp end
 
 end:
     ; x座標を1進める
     inc z_arg1
     ; @todo 右端をオーバーしたら0リセット
-    dec z_counter3
-    lda z_counter3
+    dec z_counter2
+    lda z_counter2
     bne load
     
     rts
@@ -991,20 +1034,95 @@ vblank_end:
 ; 水平方向への書き込み
 .proc bg_write_horizontal
     ; BG描画
+    lda z_name_low
+    sta z_tmp1
+    sta z_tmp2
+
+    lda #$10
+    sta z_counter1
+
+    ldx #$00
+
+write:
     lda z_name_high
     sta $2006
-    lda z_name_low
+    lda z_tmp1
     sta $2006
-
-    ldy #$40
-    ldx #$00
-; 指定座標からメモリの内容を連続して書き込むだけ
-write_bg:
+    
+    ldy #$02
+write_bg_up:
     lda w_map, x
     sta $2007
     inx
     dey
-    bne write_bg
+    bne write_bg_up
+
+
+    lda z_name_high
+    sta $2006
+    lda z_tmp1
+    clc
+    adc #$20
+    sta $2006
+    sta z_tmp1
+
+    ldy #$02
+write_bg_down:
+    lda w_map, x
+    sta $2007
+    inx
+    dey
+    bne write_bg_down
+
+    lda z_tmp2
+    clc
+    adc #$02
+    sta z_tmp1
+    sta z_tmp2
+
+    ; これでVBlankをオーバーする模様
+    ; サブルーチンの中を空にしても画面が崩れた
+    ;jsr check_h_over
+
+    dec z_counter1
+    lda z_counter1
+    bne write
+
+    rts
+.endproc
+
+.proc check_h_over
+    lda z_tmp2
+    and #%00111111
+    bne end
+
+    ;超えたら別ネームテーブルに切り替え
+    lda z_name_high
+    cmp #$24
+    bcc turn_name1
+    jmp turn_name0
+
+turn_name1:
+    lda z_name_high
+    clc
+    adc #$04
+    sta z_name_high
+    lda #$00
+    sta z_tmp1
+    sta z_tmp2
+    jmp end
+
+turn_name0:
+    lda z_name_high
+    sec
+    sbc #$04
+    sta z_name_high
+    lda #$00
+    sta z_tmp1
+    sta z_tmp2
+    jmp end
+
+end:
 
     rts
 .endproc
@@ -1043,20 +1161,60 @@ write_bg:
     lda w_map, x
     sta $2007
 
+    jsr check_v_over
+
+    inx
+    dey
+    bne write_bg
+
+    rts
+.endproc
+
+.proc check_v_over
     ; 次に描画するインデックス準備
     ; ここでキャリーが発生する可能性がある
     lda z_name_low
     clc
     adc #$20
     sta z_name_low
-    bcc not_inc_high ; キャリーが発生しなかったらそのまま
-    ; キャリーしたらhightを1進める
-    inc z_name_high
-not_inc_high:
-    inx
-    dey
-    bne write_bg
+    bcs inc_high
 
+    lda z_name_low
+    cmp #$c0
+    bcc end
+
+    lda z_name_high
+    cmp #$23
+    beq reset_name0
+    cmp #$27
+    beq reset_name1
+    jmp end
+
+reset_name0:
+    lda #$20
+    sta z_name_high
+
+    lda z_name_low
+    sec
+    sbc #$c0
+    sta z_name_low
+    jmp end
+
+reset_name1:
+    lda #$24
+    sta z_name_high
+
+    lda z_name_low
+    sec
+    sbc #$c0
+    sta z_name_low
+    jmp end
+
+inc_high:
+    ; キャリーしたらhight1進める
+    inc z_name_high
+
+end:
     rts
 .endproc
 
@@ -1145,24 +1303,6 @@ z_auto_move: .byte $00 ; 自動移動中かの判定
 z_name_index: .byte $00 ; 現在カーソルのあるネームテーブルの番号0-3
 z_name_high: .byte $00 ; 書き込み開始位置high
 z_name_low: .byte $00 ; 書き込み開始位置low
-; ----- 
-
-
-
-
-z_chip: .byte $00   ; 処理中のマップ情報
-z_index: .byte $00  ; ループカウンタ値保存用
-z_map_low: .byte $00 ; 読み込みマップのアドレス
-z_map_high: .byte $00 
-; -- 09 --
-; -- 10 --
-z_current_left_high: .byte $00 ; 現在左側の座標情報(high)
-z_current_left_low: .byte $00 ; 現在左側の座標情報(low)
-z_load_x: .byte $00 ; ロードするマップのx座標
-z_load_y: .byte $00 ; ロードするマップのy座標
-z_map_index: .byte $00 ; マップ読み込み時の退避領域
-z_map_index2: .byte $00 ; マップ読み込み時の退避領域
-
 
 .org $0050
 z_debug: .byte $00
