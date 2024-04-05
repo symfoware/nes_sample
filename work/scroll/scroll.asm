@@ -41,24 +41,16 @@ copypal:
     bne copypal ; yデクリメントの結果0にならなかったらcopypalに戻る
 
 ; マップ情報を表示
-    ; mapをネームテーブル0へ
-    lda #$00
-    sta <z_name_index
-    lda #<map
-    sta <z_map_low
-    lda #>map
-    sta <z_map_high
-    jsr drawchip
+    ; 初期mapをネームテーブル0へ
+    jsr load_map
 
     ; 描画位置の右端座標
-    lda #$20
-    sta z_current_left_high
     lda #$00
-    sta z_current_left_low
+    sta z_x
+    sta z_y
 
 ; BGのスクリーン表示位置設定左上にぴったり(スクロール設定)
     lda #$00
-    sta z_x
     sta $2005
     sta $2005
 
@@ -68,17 +60,26 @@ copypal:
     lda #%00001110 ; スプライト表示,BG表示,左端8x8のスプライト表示,左端8x8のBG表示
     sta $2001
 
-; 初期表示
     lda #$00
     sta z_frame_processed
-
 ; ---------------------------------------------------------------------------------
 ; 無限ループ
 infinity_loop:
+    jsr main_loop
+    jmp infinity_loop
+
+.endproc
+
+; ---------------------------------------------------------------------------
+; VBlank外での処理
+.proc main_loop
 
     ; 処理済のフレームかチェック
     lda z_frame_processed
-    bne infinity_loop ; 1なら処理済
+    beq proc1 ; 1なら処理済
+    rts
+
+proc1:
 
     lda #$01
     sta z_auto_move ; 自動移動中かの判定 一旦onに
@@ -88,20 +89,611 @@ infinity_loop:
     lda z_x ; x座標
     ; 0-3bitが0ならキリがよい
     and #%00001111
-    bne bgmove ; キー入力判定は行わず、直前の入力を参考にbg移動処理
+    bne proc2 ; キー入力判定は行わず、直前の入力を参考にbg移動処理
 
     lda z_y ; x座標
     ; 0-3bitで0ならキリがよい
     and #%00001111
-    bne bgmove ; キー入力判定は行わず、直前の入力を参考にbg移動処理
+    bne proc2 ; キー入力判定は行わず、直前の入力を参考にbg移動処理
 
     lda #$00
     sta z_auto_move ; 自動移動中では無いのでoff
 
+    ; キー入力取得
+    jsr collect_input
+    cmp z_controller_1
+    bne proc2 ; 何か押されていたら判定処理
 
-    ;lda $0703 ; x座標
-    ; コントローラー1入力取得
-    ; パッドI/Oレジスタの初期化($4016に1,0の順で書き込むのが作法)
+    rts ; 何も押されてなければ処理終了
+
+proc2:
+    ; キー入力のビット
+    ; bit:キー
+    ; 7:A
+    ; 6:B
+    ; 5:SELECT
+    ; 4:START
+    ; 3:UP
+    ; 2:DOWN
+    ; 1:LEFT
+    ; 0:RIGHT
+
+
+; 上キー入力チェック
+    lda #%00001000
+    and z_controller_1
+    beq keycheck_down ; 押されてなければ下キーチェック
+
+    jsr move_up
+    jmp keycheckend
+
+
+; 下キー入力チェック
+keycheck_down:
+    lda #%00000100
+    and z_controller_1
+    beq keycheck_left ; 押されてなければ左キーチェック
+
+    jsr move_down
+    jmp keycheckend
+
+
+; 左キー入力チェック    
+keycheck_left:
+    lda #%00000010
+    and z_controller_1
+    beq keycheck_right ; 押されてなければ右キーチェック
+
+    jsr move_left
+    jmp keycheckend
+
+; 右キー入力チェック
+keycheck_right:
+    lda #%00000001
+    and z_controller_1
+    beq keycheckend ; 押されてなければ処理終了
+
+    jsr move_right
+
+keycheckend:
+
+	; 表示するネームテーブル番号(bit1~0)をセットする
+    ; 末尾がネームテーブル 0:$2000,1:$2400
+    lda #%11001000 ;bi2:PPUインクリメント+1
+    ;lda #%11001100 ;bi2:PPUインクリメント+32 ; これを変更すると表示が崩れる気がする
+    ora z_name_index
+    sta z_2000
+
+    ; 処理済としてマーク
+    lda #$01
+    sta z_frame_processed
+    rts
+.endproc
+
+
+; ---------------------------------------------------------------------------
+; 上方向への移動
+.proc move_up
+    ; スクロール指示
+    lda #%00000100
+    sta z_frame_operation
+
+    lda z_auto_move
+    bne keycheck_scroll ; きりのよいところからの移動でなければスクロールのみ
+
+    ; きりのよい座標から上に移動する場合はメモリーに次に表示する内容を展開
+    ; 現在y座標から1引く
+    lda z_world_y
+    sta z_arg1
+    jsr sub_y1
+
+    ; 減算結果をy座標指定
+    lda z_return
+    sta z_arg2
+    sta z_debug
+    
+    ; xは現在座標
+    lda z_world_x
+    sta z_arg1
+
+    ; 水平方向にマップロード
+    jsr load_horizontal
+    
+
+    ; y座標を1引く
+    lda z_world_y
+    sta z_arg1
+    jsr sub_y1
+    lda z_return
+    sta z_world_y
+
+    ; 対象ネームテーブルhighを確定
+    lda #$01
+    bit z_name_index
+    beq name0 ; bit0が1ならname1
+    jmp name1
+
+name0:
+    lda #$20
+    sta z_name_high
+    jmp name_low
+
+name1:
+    lda #$24
+    sta z_name_high
+
+name_low:
+    ; name_lowを判定
+    jsr get_screen_y
+    lda z_return
+    sec
+    sbc #$01
+    bcs no_borrow
+    lda #$0e ;ボローが起きたときはyリセット
+
+no_borrow:
+    tay
+    lda #$00
+loop:
+    clc
+    adc #$40
+    ; $40足してキャリーしなければ次のループ
+    bcc next
+    ; キャリーしたらhighを加算
+    inc z_name_high
+next:
+    dey
+    bne loop
+    
+    sta z_name_low
+
+    ; x座標の補正
+    jsr ajust_x
+
+    ; スクロールと描画指示(H)
+    lda #%00000110
+    sta z_frame_operation
+
+
+keycheck_scroll:
+    ; y座標を1引く
+    lda z_y
+    sec
+    sbc #$01
+    sta z_y
+    bcs keycheckend ; ボローが発生しなければそのまま処理
+    
+    ; ボローしたらname_table切り替え
+    lda z_name_index
+    eor #$02
+    sta z_name_index
+    ; y座標を一番下に
+    lda #$ef
+    sta z_y
+
+keycheckend:
+
+    rts
+.endproc
+
+
+
+; ---------------------------------------------------------------------------
+; 下方向への移動
+.proc move_down
+    ; スクロール指示
+    lda #%00000100
+    sta z_frame_operation
+
+    lda z_auto_move
+    bne keycheck_scroll ; きりのよいところからの移動でなければスクロールのみ
+
+    ; きりのよい座標から下に移動する場合はメモリーに次に表示する内容を展開
+    ; 現在y座標から15足す
+    lda z_world_y
+    sta z_arg1
+    lda #$0f
+    sta z_arg2
+    jsr append_y
+
+    ; 減算結果をy座標指定
+    lda z_return
+    sta z_arg2
+    
+    ; xは現在座標
+    lda z_world_x
+    sta z_arg1
+
+    ; 水平方向にマップロード
+    jsr load_horizontal
+    
+
+    ; y座標を1増加
+    lda z_world_y
+    sta z_arg1
+    lda #$01
+    sta z_arg2
+    jsr append_y
+    lda z_return
+    sta z_world_y
+
+    ; 対象ネームテーブルhighを確定
+    lda #$01
+    bit z_name_index
+    beq name0 ; bit0が1ならname1
+    jmp name1
+
+name0:
+    lda #$20
+    sta z_name_high
+    jmp name_low
+
+name1:
+    lda #$24
+    sta z_name_high
+
+name_low:
+    ; name_lowを判定
+    ; 現在yが書き込み対象(ここからいなくなるので)
+    jsr get_screen_y
+    ldy z_return
+    lda #$00
+loop:
+    clc
+    adc #$40
+    ; $40足してキャリーしなければ次のループ
+    bcc next
+    ; キャリーしたらhighを加算
+    inc z_name_high
+next:
+    dey
+    bne loop
+    
+    sta z_name_low
+
+    ; x座標の補正
+    jsr ajust_x
+
+    ; スクロールと描画指示(H)
+    lda #%00000110
+    sta z_frame_operation
+
+
+keycheck_scroll:
+    ; y座標を1足す
+    inc z_y
+    lda z_y
+    cmp #$f0 ; yの最大を超えているかチェック    
+    bcc keycheckend ; 超えていなければOK
+    
+    ; name_table切り替え
+    lda z_name_index
+    eor #$02
+    sta z_name_index
+
+    lda #$00
+    sta z_y ; y座標をリセット
+
+keycheckend:
+
+    rts
+.endproc
+
+; x座標分の補正
+.proc ajust_x
+    jsr get_screen_x
+    lda z_return
+    clc
+    adc z_return
+    clc
+    adc z_name_low
+    ; 書き込みlow確定
+    sta z_name_low
+
+    rts
+.endproc
+
+; ---------------------------------------------------------------------------
+; 左方向への移動
+.proc move_left
+
+    ; スクロール指示
+    lda #%00000100
+    sta z_frame_operation
+
+    lda z_auto_move
+    bne keycheck_scroll ; きりのよいところからの移動でなければスクロールのみ
+    
+    ; きりのよい座標から左に移動する場合はメモリーに次に表示する内容を展開
+    ; 現在座標から1つ戻す
+    lda z_world_x
+    sta z_arg1
+    jsr sub_x1
+    ; 減算結果をx座標指定
+    lda z_return
+    sta z_arg1
+    
+    
+    ; yは現在座標
+    lda z_world_y
+    sta z_arg2
+    ; 指定座標から垂直標高のマップをメモリにデータロード
+    jsr load_vetrical
+
+    ; データ書き込み位置を判定
+    ; 左側への描画は現在値xが0の場合のみ反対側になる
+    jsr get_screen_x
+    lda z_return
+    sec
+    sbc #$01
+    bcc turn_name ; ボローが発生しなければそのまま処理
+
+    ; 現在と同じネームテーブルに書き込む
+    sta z_name_low
+    ; bit0でどちらのテーブルか判定
+    lda #$01
+    bit z_name_index
+    beq name0 ; bit0が1ならname1
+    jmp name1
+
+turn_name:
+    lda #$0f
+    sta z_name_low
+    ; bit0でどちらのテーブルか判定
+    lda #$01
+    bit z_name_index
+    beq name1
+    jmp name0
+
+name0:
+    lda #$20
+    jmp set_name_high
+name1:
+    lda #$24
+    jmp set_name_high
+
+set_name_high:
+    sta z_name_high
+
+    ; 座標は16pxで1と計算している
+    ; 書き込みx座標は8pxで1増加するので2倍する
+    lda z_name_low
+    clc
+    adc z_name_low
+    ; 書き込みlow確定
+    sta z_name_low
+
+    ; y座標分の補正
+    jsr ajust_y
+
+    ; 座標を引く
+    lda z_world_x
+    sta z_arg1
+    jsr sub_x1
+    ; 加算結果をx座標指定
+    lda z_return
+    sta z_world_x
+    
+    ; スクロールと描画指示(V)
+    lda #%00000101
+    sta z_frame_operation
+
+keycheck_scroll:
+    ; x座標を1引く
+    lda z_x
+    sec
+    sbc #$01
+    sta z_x
+    bcs keycheckend ; ボローが発生しなければそのまま処理
+    
+    ; ボローしたらname_table切り替え z_xは自動的に$ffになるのでリセット不要
+    lda z_name_index
+    eor #$01
+    sta z_name_index
+
+keycheckend:
+
+    rts
+.endproc
+
+; ---------------------------------------------------------------------------
+; 右方向への移動
+.proc move_right
+
+    ; スクロール指示
+    lda #%00000100
+    sta z_frame_operation
+
+    lda z_auto_move
+    bne keycheck_scroll ; きりのよいところからの移動でなければスクロールのみ
+    
+    ; きりのよい座標から右に移動する場合はメモリーに次に表示する内容を展開
+    ; 現在座標から16先の座標を指定
+    lda z_world_x
+    sta z_arg1
+    lda #$10
+    sta z_arg2
+    ; xを参照した結果を得る
+    jsr append_x
+    ; 加算結果をx座標指定
+    lda z_return
+    sta z_arg1
+    ; yは現在座標
+    lda z_world_y
+    sta z_arg2
+    ; 指定座標から垂直標高のマップをメモリにデータロード
+    jsr load_vetrical
+
+    ; データ書き込み位置を判定
+    ; 右側への描画は常に現在のネームテーブルと反対側
+    ; bit0でどちらのテーブルか判定
+    lda #$01
+    bit z_name_index
+    beq name1 ; bit0が0ならname1
+    lda #$20 ; bit0が1ならname0
+    jmp set_name_high
+name1:
+    lda #$24
+set_name_high:
+    sta z_name_high
+
+    ; 座標は16pxで1と計算している
+    ; 書き込みx座標は8pxで1増加するので2倍する
+    jsr get_screen_x
+    lda z_return
+    clc
+    adc z_return
+    ; 書き込みlow確定
+    sta z_name_low
+
+    ; y座標分の補正
+    jsr ajust_y
+
+    ; 座標を進める
+    lda z_world_x
+    sta z_arg1
+    lda #$01
+    sta z_arg2
+    ; xを参照した結果を得る
+    jsr append_x
+    ; 加算結果をx座標指定
+    lda z_return
+    sta z_world_x
+    
+    ; スクロールと描画指示(V)
+    lda #%00000101
+    sta z_frame_operation
+
+keycheck_scroll:
+    ; x座標を1足す
+    lda z_x
+    clc
+    adc #$01 ; #$08に変更すれば8倍速でスクロール
+    sta z_x
+    bcc keycheckend ; キャリーしていなければそのまま処理
+    
+    ; キャリーしたらname_table切り替え z_xは自動的に$00になるのでリセット不要
+    lda z_name_index
+    eor #$01
+    sta z_name_index
+
+keycheckend:
+
+    rts
+.endproc
+
+; y座標分の補正
+.proc ajust_y
+    ; 現在yが書き込み対象
+    jsr get_screen_y
+    ldy z_return
+    lda z_name_low
+loop:
+    clc
+    adc #$40
+    ; $40足してキャリーしなければ次のループ
+    bcc next
+    ; キャリーしたらhighを加算
+    inc z_name_high
+next:
+    dey
+    bne loop
+    
+    sta z_name_low
+    rts
+.endproc
+
+
+; ---------------------------------------------------------------------------
+; オーバーフローを考慮しx座標に加算
+; arg1: 加算対象のx座標, arg2: 加算する数
+.proc append_x
+    lda z_arg1
+    clc
+    adc z_arg2
+    cmp #$30 ; マップ右側に達していたらリセット
+    bcc skip
+    sec
+    sbc #$30
+skip:
+    sta z_return
+    rts
+.endproc
+
+; オーバーフローを考慮しx座標から1減算
+; arg1: 減算対象のx座標
+.proc sub_x1
+    lda z_arg1
+    sec
+    sbc #$01
+    bcs skip ; ボローが発生しなければそのまま処理
+
+    lda #$2f ; マップ左側に達していたらリセット
+
+skip:
+    sta z_return
+    rts
+.endproc
+
+
+; ---------------------------------------------------------------------------
+; オーバーフローを考慮しy座標に加算
+; arg1: 加算対象のx座標, arg2: 加算する数
+.proc append_y
+    lda z_arg1
+    clc
+    adc z_arg2
+    cmp #$1e ; マップ右側に達していたらリセット
+    bcc skip
+    sec
+    sbc #$1e
+skip:
+    sta z_return
+    rts
+.endproc
+
+; オーバーフローを考慮しy座標から1減算
+; arg1: 減算対象のx座標
+.proc sub_y1
+    lda z_arg1
+    sec
+    sbc #$01
+    bcs skip ; ボローが発生しなければそのまま処理
+
+    lda #$1d ; マップ左側に達していたらリセット
+
+skip:
+    sta z_return
+    rts
+.endproc
+
+
+; ---------------------------------------------------------------------------
+.proc get_screen_x
+    lda z_x
+    lsr
+    lsr
+    lsr
+    lsr
+    sta z_return
+    rts
+.endproc
+
+; ---------------------------------------------------------------------------
+.proc get_screen_y
+    lda z_y
+    lsr
+    lsr
+    lsr
+    lsr
+    sta z_return
+    rts
+.endproc
+
+; ---------------------------------------------------------------------------
+; キー入力の取得
+.proc collect_input
+    
     lda #$01
     sta $4016
     lda #$00 
@@ -116,671 +708,255 @@ keycheck_loop:
     rol z_controller_1 ; Cの値を0bit目に詰めつつ左ローテート
     dex
     bne keycheck_loop ; 8個読み取るまでループ
-    
-    cmp z_controller_1
-    beq infinity_loop ; なにも押されていないならばループに戻る
-    
-    ; 以降変更なし
-    ; bit:キー
-    ; 7:A
-    ; 6:B
-    ; 5:SELECT
-    ; 4:START
-    ; 3:UP
-    ; 2:DOWN
-    ; 1:LEFT
-    ; 0:RIGHT
 
-bgmove:
-;UPKEYdown
-    lda #%00001000
-    and z_controller_1
-    beq keycheck_down ; 結果が0なら押されてない判定
-
-    ; スクロール指示
-    lda #%00000100
-    sta z_frame_operation
-    
-    lda z_auto_move
-    bne keycheck_u_scroll ; きりのよいところからの移動でなければスクロールのみ
-
-    ; きりのよい座標から左に移動する場合はメモリーに次に表示する内容を展開
-    jsr load_up
-    
-    ; スクロールと描画指示(H)
-    lda #%00000110
-    sta z_frame_operation
-
-
-keycheck_u_scroll:
-    ; y座標を1引く
-    lda z_y
-    sec
-    sbc #$01
-    sta z_y
-    bcs keycheck_down ; ボローが発生しなければそのまま処理
-    
-    ; ボローしたらname_table切り替え
-    lda z_name_index
-    eor #$02
-    sta z_name_index
-    ; y座標を一番下に
-    lda #$ef
-    sta z_y
-    
-
-
-keycheck_down:
-;DOWNKEYdown:
-    lda #%00000100
-    and z_controller_1
-    beq keycheck_left ; 結果が0なら押されてない判定
-    
-    ; スクロール指示
-    lda #%00000100
-    sta z_frame_operation
-
-    lda z_auto_move
-    bne keycheck_d_scroll ; きりのよいところからの移動でなければスクロールのみ
-
-
-keycheck_d_scroll:
-
-    ; y座標を1足す
-    inc z_y
-    lda z_y
-    cmp #$f0 ; yの最大を超えているかチェック    
-    bcc keycheckend ; 超えていなければOK
-    
-    ; name_table切り替え
-    lda z_name_index
-    eor #$02
-    sta z_name_index
-
-    lda #$00
-    sta z_y ; y座標をリセット
-    jmp keycheckend
-
-
-keycheck_left:
-;LEFTKEYdown:
-    lda #%00000010
-    and z_controller_1
-    beq keycheck_right
-
-    ; スクロール指示
-    lda #%00000100
-    sta z_frame_operation
-
-    lda z_auto_move
-    bne keycheck_l_scroll ; きりのよいところからの移動でなければスクロールのみ
-    
-    ; きりのよい座標から左に移動する場合はメモリーに次に表示する内容を展開
-    jsr load_left
-    
-    ; スクロールと描画指示(V)
-    lda #%00000101
-    sta z_frame_operation
-
-keycheck_l_scroll:
-    ; x座標を1引く
-    lda z_x
-    sec
-    sbc #$01
-    sta z_x
-    bcs keycheckend ; ボローが発生しなければそのまま処理
-    
-    ; ボローしたらname_table切り替え z_xは自動的に$ffになるのでリセット不要
-    lda z_name_index
-    eor #$01
-    sta z_name_index
-    jmp keycheckend
-    
-keycheck_right:
-;RIGHTKEYdown:
-    lda #%00000001
-    and z_controller_1
-    beq keycheckend
-
-    ; スクロール指示
-    lda #%00000100
-    sta z_frame_operation
-
-    lda z_auto_move
-    bne keycheck_r_scroll ; きりのよいところからの移動でなければスクロールのみ
-    
-    ; きりのよい座標から右に移動する場合はメモリーに次に表示する内容を展開
-    jsr load_right
-    
-    ; スクロールと描画指示(V)
-    lda #%00000101
-    sta z_frame_operation
-
-keycheck_r_scroll:
-    ; x座標を1足す
-    lda z_x
-    clc
-    adc #$01 ; #$08に変更すれば8倍速でスクロール
-    sta z_x
-    bcc keycheckend ; キャリーしていなければそのまま処理
-    
-    ; キャリーしたらname_table切り替え z_xは自動的に$00になるのでリセット不要
-    lda z_name_index
-    eor #$01
-    sta z_name_index
-    jmp keycheckend
-
-keycheckend:
-
-	; 表示するネームテーブル番号(bit1~0)をセットする
-    ; 末尾がネームテーブル 0:$2000,1:$2400
-    lda #%11001000 ;bi2:PPUインクリメント+1
-    ;lda #%11001100 ;bi2:PPUインクリメント+32 ; これを変更すると表示が崩れる気がする
-    ora z_name_index
-    sta z_2000
-    
-    lda #$01
-    sta z_frame_processed
-
-    jmp infinity_loop
-
+    rts
 .endproc
 
 
 ; ---------------------------------------------------------------------------
-; 上側方向のマップ情報を取得
-.proc load_up
-    ; 先にworld座標を1減算し、表示したいインデックスに移動しておく
-    lda z_world_y
-    bne dec_world_y; 0でなければ引く余地あり
-    ; 0まで達していたら1d
-    lda #$1d
-    sta z_world_y
-    jmp world_end
-
-dec_world_y:
-    dec z_world_y
-
-world_end:
-
-    ; mapの見出しindexは(y * 6)になる
+; 初期マップの表示
+.proc load_map
+    ;描画の開始座標設定
+    lda #$20
+    sta z_name_high
     lda #$00
-    sta z_tmp
-    ldy #$06
-mul: ;y * 6 = z_world_yを6回足せば良い
+    sta z_name_low
+
+    ; 読み込み開始y設定
+    lda #$00
+    sta z_arg2
+
+vetrical:
+    ; 読み込み開始x設定
+    lda #$00
+    sta z_arg1
+    jsr load_horizontal
+    ; メモリに展開した内容描画
+    jsr bg_write_horizontal
+
+    lda z_name_low
     clc
-    adc z_world_y
+    adc #$40
+    sta z_name_low
+    bcs inc_high
+    jmp end
+
+inc_high:
+    ; キャリーしたらhight1進める
+    inc z_name_high
+
+end:
+
+    ; y座標を1進める
+    inc z_arg2
+    lda z_arg2
+    cmp #$0f
+    bcc vetrical
+
+    rts
+.endproc
+
+
+
+; ---------------------------------------------------------------------------
+; 指定座標から横16の情報を読み取り、w_mapに設定
+; arg1: x座標, arg2:y座標
+.proc load_horizontal
+    lda #$00
+    sta z_counter1
+
+    lda #$10
+    sta z_counter2
+load:
+    ; 対象座標のデータ取得
+    jsr get_chip
+    lda z_return
+    beq floor; 0なら床
+    ; 1なら壁
+    ; 1列目
+    ldx z_counter1
+    lda #$04
+    sta w_map, x
+    inx
+
+    lda #$05
+    sta w_map, x
+    inx
+    
+    ; 2列目
+    lda #$06
+    sta w_map, x
+    inx
+
+    lda #$07
+    sta w_map, x
+    inx
+    stx z_counter1
+    jmp end
+
+floor:
+    ; 0なら床 データは全て$01
+    ; 1列目
+    lda #$01
+    ldx z_counter1
+    sta w_map, x
+    inx
+
+    sta w_map, x
+    inx
+
+    ; 2列目
+    sta w_map, x
+    inx
+
+    sta w_map, x
+    inx
+    stx z_counter1
+    jmp end
+
+end:
+    ; x座標を1進める
+    inc z_arg1
+    ; @todo 右端をオーバーしたら0リセット
+    dec z_counter2
+    lda z_counter2
+    bne load
+    
+    rts
+.endproc
+
+
+; ---------------------------------------------------------------------------
+; 指定座標から縦15の情報を読み取り、w_mapに設定
+; arg1: x座標, arg2:y座標
+.proc load_vetrical
+    lda #$00
+    sta z_counter1
+
+    lda #$0f
+    sta z_counter3
+load:
+    ; 対象座標のデータ取得
+    jsr get_chip
+    lda z_return
+    beq floor; 0なら床
+    ; 1なら壁
+    ; 1列目
+    ldx z_counter1
+    lda #$04
+    sta w_map, x
+    inx
+    lda #$05
+    sta w_map, x
+    inx
+
+    ; 2列目
+    lda #$06
+    sta w_map, x
+    inx
+    lda #$07
+    sta w_map, x
+    inx
+    stx z_counter1
+    jmp end
+
+floor:
+    ; 0なら床 データは全て$01
+    ; 1列目
+    lda #$01
+    ldx z_counter1
+    sta w_map, x
+    inx
+    sta w_map, x
+    inx
+
+    ; 2列目
+    sta w_map, x
+    inx
+    sta w_map, x
+    inx
+    stx z_counter1
+    jmp end
+
+end:
+    ; y座標を1進める
+    inc z_arg2
+    ; @todo 右端をオーバーしたら0リセット
+    dec z_counter3
+    lda z_counter3
+    bne load
+
+    rts
+.endproc
+
+; ---------------------------------------------------------------------------
+; 指定座標の情報を読み取り、z_returnに設定
+; arg1: x座標, arg2:y座標
+.proc get_chip
+    ; y座標を読み込み
+    ldy #$06
+    lda #$00
+mul: ;y * 6 = yを6回足せば良い
+    clc
+    adc z_arg2
     dey
     bne mul
-    ; 読み出し開始位置yを設定
-    sta z_load_y
+    ; 読み出し開始位置y
+    sta z_tmp1
 
-    jsr write_y_start
-
-
-    ; ---------------------------------------------
-    ; 下向き移動作成時にサブルーチンへ
-    ; 読み出し座標取得
-    lda z_load_x
+    ; 読み出しx座標取得
+    lda z_arg1
     and #%00000111
-    sta z_tmp ; 下位ビットが初期ビットシフト数
-    lda z_load_x
+    sta z_tmp2 ; 下位ビットが初期ビットシフト数
+    lda z_arg1
     and #%11111000 ; 上位ビットがmapのインデックス
     lsr ; 3つビットシフト
     lsr
     lsr
-    ; 退避しておいたY開始を加算
+    ; 退避しておいたy開始にxを加算
     clc
-    adc z_load_y
-    sta z_index ; マップの開始indexを退避
-    sta z_debug
-
-    ; 書き込んだインデックスリセット
-    lda #$00
-    sta z_map_index ; 1段目
-    lda #$20
-    sta z_map_index2 ; 2段目
-
-    ; 取得するチップ数
-    ldy #$10
+    adc z_tmp1
+    sta z_tmp1 ; 最終的なマップの開始indexを退避
     
-load_chip:
-    ; 最初のチップを読み出し
-    ldx z_index ; マップ読み込みインデックス復元
-    lda map, x
-    ; 必要なビットまでシフト
+    ; 対象のマップ情報があるデータをロード
+    ldy z_tmp1
+    lda map, y
+
+    ; ビットシフト実行
     ldx #$00
 seek:
-    cpx z_tmp
-    beq found ; 該当ビット
+    cpx z_tmp2
+    beq found ; 該当ビット発見
     inx
     asl
     jmp seek
 
 found:
     asl
-    ; Cにマップの情報が入っている
-    bcc floor
-    
-    ; 壁
-    ldx z_map_index
-    lda #$04
-    sta w_map, x
-    inx
-    lda #$05
-    sta w_map, x
-    inx
-    stx z_map_index
+    bcc floor ; 0の場合は床
 
-    ldx z_map_index2
-    lda #$06
-    sta w_map, x
-    inx
-    lda #$07
-    sta w_map, x
-    inx
-    stx z_map_index2
-    jmp end_chip
-
-floor: ; 全てのチップが$01なので、4回書き込む
-    ldx z_map_index
+    ; 1の場合は壁
     lda #$01
-    sta w_map, x
-    inx
-    sta w_map, x
-    inx
-    stx z_map_index
+    jmp end
 
-    ldx z_map_index2
-    sta w_map, x
-    inx
-    sta w_map, x
-    inx
-    stx z_map_index2
-
-end_chip:
-    inc z_tmp
-    lda z_tmp
-    cmp #$08 ; 最後までチップを拾っていたら終了チェック
-    bcc next
+floor:
     lda #$00
-    sta z_tmp
-    inc z_index
 
-next:
-    dey
-    bne load_chip ;必要数チップを拾う
-    
+end:
+    ; 指定座標のマップIDを戻り値として設定
+    sta z_return
 
     rts
 .endproc
 
-.proc write_y_start
 
-    ; 書き込み開始位置判定
-    lda z_world_y
-    cmp #$0f ; 範囲補正
-    bcc noop
-    sec
-    sbc #$0f
-
-noop:
-    tay
-
-    lda z_current_left_high
-    sta z_name_high
-    lda z_current_left_low
-inc_y:
-    clc
-    adc #$40
-    bcc inc_y_end; キャリーなし
-    ; キャリーしたらhighを増やす
-    inc z_name_high
-    inc z_debug
-
-
-inc_y_end:
-    dey
-    bne inc_y
-    
-    sta z_name_low
-    rts
-.endproc
 
 
 ; ---------------------------------------------------------------------------
-; 左側方向のマップ情報を取得
-.proc load_left
-
-    ; 先にworld座標を1減算し、表示したいインデックスに移動しておく
-    lda z_world_x
-    bne dec_world_x; 0でなければ引く余地あり
-    ; 0まで達していたら2f
-    lda #$2f
-    sta z_world_x
-    jmp world_end
-    
-dec_world_x:
-    dec z_world_x
-
-world_end:
-    lda z_world_x
-    ; マップ読み込み開始位置を指定し、マップロード
-    sta z_load_x
-    jsr load_vetrical
-    
-    ; 書き込み開始位置判定
-    ; 先にlowを2引く
-    lda z_current_left_low
-    bne sub2 ; 0でなければ素直に2引く
-    ; 0なら$1eでリセット
-    lda #$1e
-    sta z_current_left_low
-    ; highも変更
-    ; 現在のhighを参照 $20なら$24, $24なら$20に書き込む
-    lda z_current_left_high
-    eor #%00000100
-    sta z_current_left_high
-    jmp subend
-
-sub2:
-    dec z_current_left_low
-    dec z_current_left_low
-
-subend:
-    ; 描画座標確定
-    lda z_current_left_high
-    sta z_name_high
-    lda z_current_left_low
-    sta z_name_low
-
-    rts
-.endproc
-
+; VBlank中に行う処理
 ; ---------------------------------------------------------------------------
-; 右側方向のマップ情報を取得
-.proc load_right
-    ; 読み出したいxインデックス判定
-    ; 座標を1加算
-    clc
-    lda z_world_x
-    adc #$10 ; 現在xから16先の情報が必要
-    cmp #$30 ; マップ右側に達していなければそのまま処理
-    bcc skip_over
-    ; マップインデックスオーバーの場合はオーバー分を減じる
-    sec
-    sbc #$30
-skip_over:
-    ; ロード位置を指定しメモリにマップロード
-    sta z_load_x
-    jsr load_vetrical
-    
-    ; 書き込み開始位置判定
-    ; 現在のhighを参照 $20なら$24, $24なら$20に書き込む
-    lda z_current_left_high
-    eor #%00000100
-    sta z_name_high
-    ; lowはそのまま
-    lda z_current_left_low
-    sta z_name_low
-    
-    ; currentの座標を2進める
-    clc
-    adc #$02
-    cmp #$20
-    sta z_current_left_low
-    bcc skip_left_reest ; $20を超えてなければそのまま
-
-    ; $20を超えたら0リセット
-    lda #$00
-    sta z_current_left_low
-    ; highを切り替え($20->$24, $24->$20)
-    lda z_current_left_high
-    eor #%00000100
-    sta z_current_left_high
-
-skip_left_reest:
-
-    ; 座標を1加算
-    inc z_world_x
-    lda z_world_x
-    cmp #$30 ; マップ右側に達していたらリセット
-    bcc skip
-    lda #$00
-skip:
-    sta z_world_x
-
-    rts
-.endproc
-
-
 ; ---------------------------------------------------------------------------
-; z_load_xで指定された箇所の垂直地図情報を取得する
-.proc load_vetrical
-    ; 読み出し座標取得
-    lda z_load_x
-    and #%00000111
-    sta z_tmp ; 下位ビットがビットシフト数
-    inc z_tmp
-    lda z_load_x
-    and #%11111000 ; 上位ビットがmapのインデックス
-    lsr ; 3つビットシフト
-    lsr
-    lsr
-    sta z_index ; マップの開始indexを退避
-
-    ; 書き込んだインデックスリセット
-    lda #$00
-    sta z_map_index
-
-    ; 取得するチップ数
-    ldy #$0f
-load_chip:
-    ldx z_index ; マップ読み込みインデックス復元
-    lda map, x
-    ldx z_tmp
-shift_chip:
-    asl ; ビットシフト
-    dex
-    bne shift_chip
-    ; Cにマップの情報が入っている
-    bcc floor
-    
-    ; 壁
-    ldx z_map_index
-    lda #$04
-    sta w_map, x
-    inx
-    lda #$05
-    sta w_map, x
-    inx
-    lda #$06
-    sta w_map, x
-    inx
-    lda #$07
-    sta w_map, x
-    inx
-    jmp end_chip
-
-floor: ; 全てのチップが$01なので、4回書き込む
-    ldx z_map_index
-    lda #$01
-    sta w_map, x
-    inx
-    sta w_map, x
-    inx
-    sta w_map, x
-    inx
-    sta w_map, x
-    inx
-
-end_chip:
-    ; 書き込みインデックスを保存
-    stx z_map_index
-    ; mapのインデックを6進める
-    inc z_index
-    inc z_index
-    inc z_index
-    inc z_index
-    inc z_index
-    inc z_index
-    dey
-    bne load_chip ;必要数チップを拾う
-    
-    ; メモリへのマップ展開終了
-    rts
-
-.endproc
-
-
-; ---------------------------------------------------------------------------
-; ソースを別ファイルに記載し.includeで取り込める
-;.include "drawchip.asm"
-.proc drawchip
-    ; 書き込み開始座標指定
-    lda z_name_index
-    bne name1
-    ; ネームテーブル0描画
-    lda #$20
-    jmp drawstart
-
-name1:
-    lda #$24
-
-drawstart:
-    sta $2006
-    lda #$00
-    sta $2006
-
-    ; ループカウンタ
-    ldx #$00
-    ldy #$0f
-maploop:
-    ; サブルーチンでyを書き換えるので、現在のy値をメモリーに退避
-    sty z_index
-
-    ; マップ情報を読み込みメモリーに退避(16-y行目左側)
-    txa
-    tay
-    lda (z_map_low), y
-    sta z_chip
-    ; z_chipを情報を解析して書き込み
-    jsr drawChipUp
-    inx
-
-    ; マップ情報を読み込みメモリーに退避(16-y行目右側)
-    txa
-    tay
-    lda (z_map_low), y
-    sta z_chip
-    ; z_chipを情報を解析して書き込み
-    jsr drawChipUp
-    dex ; 一つ前に戻す
-    
-    ; マップ情報を読み込みメモリーに退避
-    txa
-    tay
-    lda (z_map_low), y ; (16-y行目左側)
-    sta z_chip
-    jsr drawChipLow
-    inx
-    
-    txa
-    tay
-    lda (z_map_low), y ; (16-y行目右側)
-    sta z_chip
-    jsr drawChipLow
-    inx
-    
-    ; インデックスを飛ばす
-    inx
-    inx
-    inx
-    inx
-
-    ; yの値が書き換わっているのでメモリーから復帰
-    ldy z_index
-    dey
-    bne maploop
-
-    rts
-
-
-; map情報から画面表示(16x16の上半分)
-drawChipUp:
-    ; 1bit単位で0なら通路、1なら壁)
-    ldy #$08
-loopup:
-    ; map情報の断片をロード
-    lda z_chip
-    ; bit演算した結果を出力BGデータでで 0は床、1は壁のパネルを設定している
-    and #%10000000
-    beq floorup ; 0なら床
-    jmp wallup
-
-floorup:
-    lda #$01
-    sta $2007
-    lda #$01
-    sta $2007
-    jmp finup
-
-wallup:
-    lda #$04
-    sta $2007
-    lda #$05
-    sta $2007
-    
-finup:
-    ; 左ローテート
-    rol z_chip
-    dey
-    bne loopup
-    ;jmp draw8chipr ; ルーチンが近い場合はjmpしてみるテスト
-    rts
-
-
-
-; map情報から画面表示(16x16の下半分)
-drawChipLow:
-    ; 1bit単位で0なら通路、1なら壁)
-    ldy #$08
-looplow:
-    ; map情報の断片をロード
-    lda z_chip
-    ; bit演算した結果を出力BGデータでで 0は床、1は壁のパネルを設定している
-    and #%10000000
-    beq floorlow ; 0なら床
-    jmp walllow
-
-floorlow:
-    lda #$01
-    sta $2007
-    lda #$01
-    sta $2007
-    jmp finlow
-
-walllow:
-    lda #$06
-    sta $2007
-    lda #$07
-    sta $2007
-    
-finlow:
-    ; 左ローテート
-    rol z_chip
-    dey
-    bne looplow
-    ;jmp draw8chipr ; ルーチンが近い場合はjmpしてみるテスト
-    rts
-.endproc
-
-
-; ---------------------------------------------------------------------------
-.proc mainloop
-    ; NMIによる割り込み処理に変更したのでチェック不要
-    ;lda $2002 ; VBlankが発生すると、$2002の7ビット目が1になります。
-    ;bpl mainloop ; bit7が0の間は、mainLoopラベルの位置に飛んでループして待ち続けます。
+.proc vblank_loop
 
     ; VBlank中に値を書き換えると、呼び出し元の処理が壊れるので一旦退避
     ; これで様子見
@@ -791,16 +967,11 @@ finlow:
     pha ; A(=Y)をスタックに
     php ; ステータスをスタックに
 
-
-    inc z_frame ; タイマーカウントアップ
+    inc z_frame ; フレームカウンター
     lda z_frame_processed
     ; まだ準備できていなければスキップ
-    beq bvlank_end
-
-    ; 描画指示読み取り
-    lda z_frame_operation
-    beq bvlank_end ; 特に操作がなければ終了
-
+    beq vblank_end
+    
 ; ---- BG/スクロール共通の処理
 	; 表示するネームテーブル番号(bit1~0)をセットする
     ; 末尾がネームテーブル 0:$2000,1:$2400
@@ -827,8 +998,7 @@ check_horizontal:
 check_scroll:
     lda z_frame_operation
     lsr ; bit1読み取り
-    bcc bvlank_end ; スクロール指示がなければ終了
-
+    bcc vblank_end ; スクロール指示がなければ終了
 
     lda z_2000
     sta $2000
@@ -836,19 +1006,17 @@ check_scroll:
     ; スクロール実行
     ; スクロール位置リセット
     lda $2002
-
     ; スクロール実行
     lda z_x
     sta $2005
     lda z_y
     sta $2005
 
-bvlank_end:
+vblank_end:
     ; 描画済にフラグを更新
     lda #$00
     sta z_frame_processed
     sta z_frame_operation
-
 
     ; 退避した値を復帰
     ; 戻すときはスタックに積んだのと逆順で
@@ -862,29 +1030,121 @@ bvlank_end:
     rti ; VBlank割り込みから復帰 ここでは何も行わず、後の流れのrtiで処理しても良さそう
 .endproc
 
-
+; ---------------------------------------------------------------------------
 ; 水平方向への書き込み
 .proc bg_write_horizontal
-    
     ; BG描画
+    lda z_name_low
+    sta z_tmp1
+    sta z_tmp2
+
+    lda #$10
+    sta z_counter1
+
+    ldx #$00
+
+write:
     lda z_name_high
     sta $2006
-    lda z_name_low
+    lda z_tmp1
     sta $2006
-
-    ldy #$40
-    ldx #$00
-; 指定座標からメモリの内容を連続して書き込むだけ
-write_bg:
+    
+    ldy #$02
+write_bg_up:
     lda w_map, x
     sta $2007
     inx
     dey
-    bne write_bg
+    bne write_bg_up
+
+
+    lda z_name_high
+    sta $2006
+    lda z_tmp1
+    clc
+    adc #$20
+    sta $2006
+    sta z_tmp1
+
+    ldy #$02
+write_bg_down:
+    lda w_map, x
+    sta $2007
+    inx
+    dey
+    bne write_bg_down
+
+    lda z_tmp2
+    clc
+    adc #$02
+    sta z_tmp1
+    sta z_tmp2
+
+    ; これでVBlankをオーバーする模様
+    ; サブルーチンの中を空にしても画面が崩れた
+    ;jsr check_h_over
+
+    dec z_counter1
+    lda z_counter1
+    bne write
 
     rts
 .endproc
 
+.proc check_h_over
+;$10 %00010000
+;-$20 %00100000
+;$30 %00110000
+;$40 %01000000
+;$50 %01010000
+;-$60 %01100000
+;$70 %01110000
+;$80 %10000000
+;$90 %10010000
+;-$a0 %10100000
+
+;-$20 %00100000
+;-$60 %01100000
+;-$a0 %10100000
+
+
+
+    lda z_tmp2
+    and #%00111111
+    bne end
+
+    ;超えたら別ネームテーブルに切り替え
+    lda z_name_high
+    cmp #$24
+    bcc turn_name1
+    jmp turn_name0
+
+turn_name1:
+    lda z_name_high
+    clc
+    adc #$04
+    sta z_name_high
+    lda #$00
+    sta z_tmp1
+    sta z_tmp2
+    jmp end
+
+turn_name0:
+    lda z_name_high
+    sec
+    sbc #$04
+    sta z_name_high
+    lda #$00
+    sta z_tmp1
+    sta z_tmp2
+    jmp end
+
+end:
+
+    rts
+.endproc
+
+; ---------------------------------------------------------------------------
 ; 垂直方向への書き込み
 .proc bg_write_vetrical
     ; BG描画
@@ -918,16 +1178,8 @@ write_bg:
     lda w_map, x
     sta $2007
 
-    ; 次に描画するインデックス準備
-    ; ここでキャリーが発生する可能性がある
-    lda z_name_low
-    clc
-    adc #$20
-    sta z_name_low
-    bcc not_inc_high ; キャリーが発生しなかったらそのまま
-    ; キャリーしたらhightを1進める
-    inc z_name_high
-not_inc_high:
+    jsr check_v_over
+
     inx
     dey
     bne write_bg
@@ -935,12 +1187,63 @@ not_inc_high:
     rts
 .endproc
 
+.proc check_v_over
+    ; 次に描画するインデックス準備
+    ; ここでキャリーが発生する可能性がある
+    lda z_name_low
+    clc
+    adc #$20
+    sta z_name_low
+    bcs inc_high
+
+    lda z_name_low
+    cmp #$c0
+    bcc end
+
+    lda z_name_high
+    cmp #$23
+    beq reset_name0
+    cmp #$27
+    beq reset_name1
+    jmp end
+
+reset_name0:
+    lda #$20
+    sta z_name_high
+
+    lda z_name_low
+    sec
+    sbc #$c0
+    sta z_name_low
+    jmp end
+
+reset_name1:
+    lda #$24
+    sta z_name_high
+
+    lda z_name_low
+    sec
+    sbc #$c0
+    sta z_name_low
+    jmp end
+
+inc_high:
+    ; キャリーしたらhight1進める
+    inc z_name_high
+
+end:
+    rts
+.endproc
 
 ; ハード、ソフトウェア割り込み
 .proc irq
     rti
 .endproc
 
+
+; ---------------------------------------------------------------------------
+; データ定義
+; ---------------------------------------------------------------------------
 ; パレットテーブル
 palettes:
     ; BG
@@ -972,21 +1275,21 @@ map:
     .byte %00000000, %00000000, %10000000, %00000001, %10000000, %00000001
     .byte %10000000, %00000001, %10000000, %00000001, %10000000, %00000001
 
-    .byte %10000000, %00000001, %10000000, %00000001, %10000000, %00000001
+    .byte %10000001, %10000001, %10000000, %00000001, %10000000, %00000001
     .byte %00000000, %00000001, %10000000, %00000001, %10000000, %00000001
     .byte %00000000, %00000000, %00000000, %00000000, %10000000, %00000001
-    .byte %00011111, %11111000, %00001111, %11110000, %00000111, %11110000
-    .byte %00001010, %00010000, %00000100, %00100000, %00000010, %10100000
-    .byte %00001010, %00010000, %00000100, %00100000, %00000010, %10100000
-    .byte %00001001, %00100000, %00000100, %00100000, %00000010, %10100000
-    .byte %00001001, %00100000, %00000010, %01000000, %00000010, %10100000
-    .byte %00001001, %00100000, %00000010, %01000000, %00000010, %10100000
-    .byte %00001000, %11000000, %00000001, %10000000, %00000010, %10100000
-    .byte %00001000, %11000000, %00000001, %10000000, %00000010, %10100000
-    .byte %00011111, %11111000, %00000001, %10000000, %00000111, %11110000
+    .byte %00011111, %11111000, %00001111, %11110000, %00011111, %11111000
+    .byte %00001010, %00010000, %00000100, %00100000, %00001000, %01010000
+    .byte %00001010, %00010000, %00000100, %00100000, %00001000, %01010000
+    .byte %00001001, %00100000, %00000100, %00100000, %00000100, %10010000
+    .byte %00001001, %00100000, %00000010, %01000000, %00000100, %10010000
+    .byte %00001001, %00100000, %00000010, %01000000, %00000100, %10010000
+    .byte %00001000, %11000000, %00000001, %10000000, %00000011, %00010000
+    .byte %00001000, %11000000, %00000001, %10000000, %00000011, %00010000
+    .byte %00011111, %11111000, %00000001, %10000000, %00011111, %11111000
     .byte %10000000, %00000001, %00000000, %00000000, %10000000, %00000001
     .byte %10000000, %00000001, %10000000, %00000001, %10000000, %00000001
-    .byte %11100000, %00000111, %10000000, %00000001, %10000000, %00000001
+    .byte %11110000, %00000111, %10000000, %00000001, %10000000, %00000001
 
 ; 参照のアドレスを指定できるかテスト
 maprow:
@@ -994,43 +1297,42 @@ maprow:
 
 ; 変数定義
 .org $0000 ; ゼロページ領域
+z_arg1: .byte $00 ; サブルーチン汎用引数1
+z_arg2: .byte $00 ; サブルーチン汎用引数2
+z_return: .byte $00 ; サブルーチン戻り値
+z_tmp1: .byte $00 ; 計算時のテンポラリ1
+z_tmp2: .byte $00 ; 計算時のテンポラリ2
+z_counter1: .byte $00 ; 計算時のカウンター1
+z_counter2: .byte $00 ; 計算時のカウンター2
+z_counter3: .byte $00 ; 計算時のカウンター3
+
+.org $0010
 z_frame: .byte $00 ; VBlank毎にカウントアップ
 z_frame_processed: .byte $00 ; 描画準備ができているか0:未処理、1:準備済
 z_frame_operation: .byte $00 ; VBlank中にやってほしいこと bit0:スクロール bit1:描画
 z_controller_1: .byte $00 ; コントローラー1入力
-z_chip: .byte $00   ; 処理中のマップ情報
-z_index: .byte $00  ; ループカウンタ値保存用
-z_name_index: .byte $00 ; 対象ネームテーブルの番号0/1
-z_map_low: .byte $00 ; 読み込みマップのアドレス
-z_map_high: .byte $00 
-; -- 09 --
 z_x: .byte $00 ; スクロールx
 z_y: .byte $00 ; スクロールy
 z_world_x: .byte $00 ; 絶対座標x
 z_world_y: .byte $00 ; 絶対座標y
 z_2000: .byte $00 ; スクロール用
-z_name_high: .byte $00
-z_name_low: .byte $00
-; -- 10 --
-z_current_left_high: .byte $00 ; 現在左側の座標情報(high)
-z_current_left_low: .byte $00 ; 現在左側の座標情報(low)
-z_load_x: .byte $00 ; ロードするマップのx座標
-z_load_y: .byte $00 ; ロードするマップのy座標
-z_map_index: .byte $00 ; マップ読み込み時の退避領域
-z_map_index2: .byte $00 ; マップ読み込み時の退避領域
 z_auto_move: .byte $00 ; 自動移動中かの判定
-z_tmp: .byte $00
-; スタック領域は$0100~$01ff
+z_name_index: .byte $00 ; 現在カーソルのあるネームテーブルの番号0-3
+z_name_high: .byte $00 ; 書き込み開始位置high
+z_name_low: .byte $00 ; 書き込み開始位置low
 
 .org $0050
 z_debug: .byte $00
+
+; スタック領域は$0100~$01ff
+
 
 .org $0200 ; ワークエリア
 w_map: .byte $00
 ; $07000以降はスプライトDMAで予約
 
 .segment "VECINFO"
-    .word mainloop ; VBlank割り込み時に実行するルーチン
+    .word vblank_loop ; VBlank割り込み時に実行するルーチン
     .word reset ; リセット割り込み
     .word irq ; ハードウェア割り込みとソフトウェア割り込み
 
