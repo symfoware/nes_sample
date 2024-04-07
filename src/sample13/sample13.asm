@@ -1229,4 +1229,4 @@ w_map: .byte $00
 
 ; パターンテーブル
 .segment "CHARS"
-    .incbin "downlad.chr"
+    .incbin "character.chr"

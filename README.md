@@ -63,3 +63,8 @@ VBlank割り込みを有効にし、割り込みが発生したタイミング�
 
 横スクロールを行うサンプルです。  
 [Ubuntuでファミコンプログラム　その12(横スクロール)](https://symfoware.blog.fc2.com/blog-entry-2801.html)	  
+
+## sample13
+
+4方向スクロールの行うサンプルです。  
+[Ubuntuでファミコンプログラム　その13(4方向スクロール)](https://symfoware.blog.fc2.com/blog-entry-2808.html)	  
