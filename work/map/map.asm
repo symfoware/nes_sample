@@ -123,6 +123,23 @@ proc2:
     ; 1:LEFT
     ; 0:RIGHT
 
+; 上キー入力チェック
+keycheck_up:
+    lda #%00001000
+    and z_controller_1
+    beq keycheck_down ; 押されてなければ下キーチェック
+
+    jsr move_up
+    jmp keycheckend
+
+; 下キー入力チェック
+keycheck_down:
+    lda #%00000100
+    and z_controller_1
+    beq keycheck_left ; 押されてなければ左キーチェック
+
+    jsr move_down
+    jmp keycheckend
 
 ; 左キー入力チェック    
 keycheck_left:
@@ -155,6 +172,184 @@ keycheckend:
     rts
 .endproc
 
+
+; ---------------------------------------------------------------------------
+; 上方向への移動
+.proc move_up
+    ; スクロール指示
+    lda #%00000010
+    sta z_frame_operation
+
+    lda z_auto_move
+    bne keycheck_scroll ; きりのよいところからの移動でなければスクロールのみ
+
+    ; きりのよい座標から上に移動する場合はメモリーに次に表示する内容を展開
+    ; 書き込む座標確定  
+    ; 上移動は現在の位置-1に書き込めば良い
+    ; bit0でどちらのテーブルか判定し、先にhighを確定
+    lda #$01
+    bit z_name_index
+    beq name0
+    jmp name1
+
+name0:
+    lda #$20
+    sta z_name_high
+    jmp end
+name1:
+    lda #$24
+    sta z_name_high
+    jmp end
+end:
+
+    ; y座標取得(0-e)
+    jsr get_screen_y
+    ; y座標に従い、high-lowを確定
+    lda z_return
+    beq current_y_zero ; 現在が0の場合は例外処理
+    sec
+    sbc #$01
+    jmp set_screen
+    
+current_y_zero:
+    lda #$0e
+
+set_screen:
+    
+    sta z_arg1
+    ; 書き込み位置を確定
+    jsr ajust_screen
+
+    ; ------------------------------------
+    ; マップのy座標を1戻す
+    lda z_world_y
+    sta z_arg1
+    jsr sub_y1
+    lda z_return
+    sta z_world_y
+    
+    ; 進めた先のデータを読み込む
+    sta z_arg2
+    lda z_world_x
+    sta z_arg1
+
+    ; マップ情報のロード
+    jsr load_horizontal
+
+
+    ; スクロールと描画指示
+    lda #%00000011
+    sta z_frame_operation
+
+
+keycheck_scroll:
+    ; y座標を1引く
+    lda z_y
+    sec
+    sbc #$01
+    sta z_y
+    bcs keycheckend ; ボローが発生しなければそのまま処理
+    
+    ; ボローしたらname_table切り替え
+    lda z_name_index
+    eor #$02
+    sta z_name_index
+    ; y座標を一番下に
+    lda #$ef
+    sta z_y
+
+keycheckend:
+
+    rts
+.endproc
+
+; ---------------------------------------------------------------------------
+; 下方向への移動
+.proc move_down
+    ; スクロール指示
+    lda #%00000010
+    sta z_frame_operation
+
+    lda z_auto_move
+    bne keycheck_scroll ; きりのよいところからの移動でなければスクロールのみ
+
+    ; きりのよい座標から下に移動する場合はメモリーに次に表示する内容を展開
+    ; ------------------------------------
+    ; 書き込む座標確定  
+    ; 下移動は現在の位置に書き込めば良い
+    ; bit0でどちらのテーブルか判定し、先にhighを確定
+    lda #$01
+    bit z_name_index
+    beq name0
+    jmp name1
+
+name0:
+    lda #$20
+    sta z_name_high
+    jmp end
+name1:
+    lda #$24
+    sta z_name_high
+    jmp end
+end:
+
+    ; y座標取得(0-e)
+    jsr get_screen_y
+    ; y座標に従い、high-lowを確定
+    lda z_return
+    sta z_arg1
+    ; 書き込み位置を確定
+    jsr ajust_screen
+
+    ; ------------------------------------
+    ; マップのy座標を1進める
+    lda z_world_y
+    sta z_arg1
+    lda #$01
+    sta z_arg2
+    jsr append_y
+    lda z_return
+    sta z_world_y
+    
+    ; 進めたyの14先のデータを読み込む
+    sta z_arg1
+    lda #$0e
+    sta z_arg2
+    jsr append_y
+    lda z_return
+    sta z_arg2
+
+    ; 移動した座標のマップを読み込む
+    lda z_world_x
+    sta z_arg1
+    ; マップ情報のロード
+    jsr load_horizontal
+
+
+    ; スクロールと描画指示
+    lda #%00000011
+    sta z_frame_operation
+
+
+keycheck_scroll:
+    ; y座標を1足す
+    inc z_y
+    lda z_y
+    cmp #$f0 ; yの最大を超えているかチェック    
+    bcc keycheckend ; 超えていなければOK
+    
+    ; name_table切り替え
+    lda z_name_index
+    eor #$02
+    sta z_name_index
+
+    lda #$00
+    sta z_y ; y座標をリセット
+
+keycheckend:
+
+    rts
+.endproc
 
 ; ---------------------------------------------------------------------------
 ; 左方向への移動
@@ -730,11 +925,11 @@ skip:
 .endproc
 
 ; y座標分の補正
-.proc ajust_y
-    ; 現在yが書き込み対象
-    jsr get_screen_y
-    ldy z_return
-    lda z_name_low
+.proc ajust_screen
+    lda z_arg1
+    beq end ; 0なら処理なし
+    tay
+    lda #$00
 loop:
     clc
     adc #$40
@@ -745,7 +940,8 @@ loop:
 next:
     dey
     bne loop
-    
+end:
+
     sta z_name_low
     rts
 .endproc
