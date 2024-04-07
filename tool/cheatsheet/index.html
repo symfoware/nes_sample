@@ -2138,15 +2138,15 @@ table {
                         <tbody>
                             <tr>
                                 <th>10進</th>
-                                <td style="width:200px;"><input type="text" name="conv-ten" id="conv-ten" size="4"></td>
+                                <td style="width:200px;"><input type="text" name="conv-ten" id="conv-ten" size="6"></td>
                             </tr>
                             <tr>
                                 <th>16進</th>
-                                <td style="width:200px;"><span id="conv-hex"></td>
+                                <td style="width:200px;"><input type="text" name="conv-hex" id="conv-hex" size="6"></td>
                             </tr>
                             <tr>
                                 <th>2進</th>
-                                <td style="width:200px;"><span id="conv-bin"></td>
+                                <td style="width:200px;"><input type="text" name="conv-bin" id="conv-bin" size="6"></td>
                             </tr>
                         </tbody>
                     </table>
@@ -2165,13 +2165,32 @@ $(() => {
     $('#conv-ten').on('keyup', function() {
         const num = $(this).val();
         if (isNaN(num)) {
-            $('#conv-hex').text('');
-            $('#conv-bin').text('');
+            $('#conv-hex').val('');
+            $('#conv-bin').val('');
             return;
         }
-        $('#conv-hex').text('$' + Number(num).toString(16));
-        $('#conv-bin').text('%' + Number(num).toString(2));
-        
+        $('#conv-hex').val(Number(num).toString(16));
+        $('#conv-bin').val(Number(num).toString(2));
+    });
+    $('#conv-hex').on('keyup', function() {
+        const num = parseInt($(this).val(), 16);
+        if (isNaN(num)) {
+            $('#conv-ten').val('');
+            $('#conv-bin').val('');
+            return;
+        }
+        $('#conv-ten').val(Number(num));
+        $('#conv-bin').val(Number(num).toString(2));
+    });
+    $('#conv-bin').on('keyup', function() {
+        const num = parseInt($(this).val(), 2);
+        if (isNaN(num)) {
+            $('#conv-ten').val('');
+            $('#conv-bin').val('');
+            return;
+        }
+        $('#conv-ten').val(Number(num));
+        $('#conv-hex').val(Number(num).toString(16));
     });
 });
 </script>
