@@ -9,7 +9,7 @@ def read_chip(im, cx, cy):
         for x in range(cx * 16, cx * 16 + 16):
             # png画像を読み込んでいるので、getpixelはrgbではなくカラーパレットの情報を返す
             # 画素判定を行う分にはこちらの方が都合がよい
-            line += str(im.getpixel((x, y)))
+            line += format(im.getpixel((x, y)), 'x')
 
     return line
 
