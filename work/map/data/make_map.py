@@ -96,7 +96,7 @@ def make_line_binary(row_index, line):
             current = chip
             count = 0
 
-    mapline = 'map%d .byte ' % (row_index)
+    mapline = 'map%d: .byte ' % (row_index)
     mapline += '%'+', %'.join(ary)
     return mapline
     
@@ -108,6 +108,16 @@ def main():
             row = make_line_binary(i, line)
             map.write(row+'\n')
 
+        rows = []
+        for i in range(0, 128):
+            rows.append('map%d' % (i))
+        map.write('mapup: .word ' + ','.join(rows)  +'\n')
+        
+        rows = []
+        for i in range(128, 256):
+            rows.append('map%d' % (i))
+        map.write('mapdown: .word ' + ', '.join(rows)  +'\n')
+    
 
 if __name__ == '__main__':
     main()
