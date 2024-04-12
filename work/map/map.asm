@@ -54,9 +54,6 @@ copypal:
     sta $2000
     lda #%00001110 ; スプライト表示,BG表示,左端8x8のスプライト表示,左端8x8のBG表示
     sta $2001
-
-    lda map16
-    sta z_debug
     
 ; ---------------------------------------------------------------------------------
 ; 無限ループ
@@ -67,6 +64,64 @@ infinity_loop:
 
 ; ---------------------------------------------------------------------------
 .proc load_map
+    ldx #$00
+    lda map16, x
+    ; 上位3ビットを取得
+    and #%11100000
+    lsr
+    lsr
+    lsr
+    lsr
+    lsr
+    sta z_chip
+    lda map16, x
+    and #%00011111
+    sta  z_count
+    jsr load_chip
+    ; z_count: .byte $00
+    ;sta z_debug
+    rts
+.endproc
+
+.proc load_chip
+    lda z_chip
+    cmp #$00
+    beq chip000
+
+chip000:
+    jsr s_chip000
+    jmp end
+
+end:
+
+    rts
+.endproc
+
+; 海描画
+.proc s_chip000
+    ; 000:海
+    lda #$20
+    sta $2006
+    lda #$00
+    sta $2006
+    lda #$10
+    sta $2007
+    lda #$11
+    sta $2007
+    lda #$20
+    sta $2006
+    lda #$20
+    sta $2006
+    lda #$12
+    sta $2007
+    lda #$13
+    sta $2007
+    rts    
+.endproc
+
+
+; ---------------------------------------------------------------------------
+.proc load_map_test
     ; 000:海
     lda #$20
     sta $2006
@@ -852,6 +907,8 @@ palettes:
 ; 変数定義
 .org $0000 ; ゼロページ領域
 z_frame: .byte $00 ; VBlank毎にカウントアップ
+z_chip: .byte $00
+z_count: .byte $00
 
 .org $0050
 z_debug: .byte $00
