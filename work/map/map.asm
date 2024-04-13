@@ -42,7 +42,7 @@ copypal:
 
 ; マップ情報を表示
     ; 初期mapをネームテーブル0へ
-    jsr load_map
+    jsr load_map_test
 
 ; BGのスクリーン表示位置設定左上にぴったり(スクロール設定)
     lda #$00
@@ -802,6 +802,24 @@ end:
     lda #$4b
     sta $2007
 
+    ; 001:氷(北半球) - p1 - 36, 5
+    lda #$20
+    sta $2006
+    lda #$86
+    sta $2006
+    lda #$9c
+    sta $2007
+    lda #$9d
+    sta $2007
+    lda #$20
+    sta $2006
+    lda #$a6
+    sta $2006
+    lda #$9e
+    sta $2007
+    lda #$9f
+    sta $2007
+
     ; パレット指定
     lda #$23
     sta $2006
@@ -834,7 +852,7 @@ end:
     lda #%10101010 ; 城
     sta $2007
 
-    lda #%00010001 ; 塔
+    lda #%00010001 ; 氷, 塔
     sta $2007
 
 
