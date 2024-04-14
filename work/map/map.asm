@@ -41,8 +41,13 @@ copypal:
     bne copypal ; yデクリメントの結果0にならなかったらcopypalに戻る
 
 ; マップ情報を表示
-    ; 初期mapをネームテーブル0へ
-    jsr load_map_test
+    lda #$5b
+    sta z_load_x
+    lda #$9c
+    sta z_load_y
+
+    ; 指定座標のチップをロード
+    jsr load_chip
 
 ; BGのスクリーン表示位置設定左上にぴったり(スクロール設定)
     lda #$00
@@ -63,807 +68,583 @@ infinity_loop:
 .endproc
 
 ; ---------------------------------------------------------------------------
-.proc load_map
-    ldx #$00
-    lda map16, x
-    ; 上位3ビットを取得
-    and #%11100000
-    lsr
-    lsr
-    lsr
-    lsr
-    lsr
-    sta z_chip
-    lda map16, x
-    and #%00011111
-    sta  z_count
-    jsr load_chip
-    ; z_count: .byte $00
-    ;sta z_debug
-    rts
-.endproc
-
 .proc load_chip
-    lda z_chip
-    cmp #$00
-    beq chip000
+    ; 緯度を北にセット
+    lda #$00
+    sta z_latitude
 
-chip000:
-    jsr s_chip000
-    jmp end
+    ; 読み込むチップのy座標
+    lda z_load_y
+    ; word単位で進むので2倍する
+    clc
+    adc z_load_y
+    tay
+    ; キャリーしたかで読み込むマップの上下を判定
+    bcs load_down ; 南半球
 
-end:
+    ; 北半球のデータロード
+    ; 行の座標データ取得
+    lda mapup, y
+    sta z_adr_low
+    iny
+    lda mapup, y
+    sta z_adr_high
+    jmp load_y_end
 
-    rts
-.endproc
+load_down: ; 南半球のデータロード
+    ; 緯度を南に瀬戸
+    lda #$01
+    sta z_latitude
 
-; 海描画
-.proc s_chip000
+    lda mapdown, y
+    sta z_adr_low
+    iny
+    lda mapdown, y
+    sta z_adr_high
+
+load_y_end:
+
+    ; カウンター初期化
+    lda #$00
+    sta z_counter
+    ; 対象列の最初のチップロード
+    ldy #$00
+loop:
+    lda (z_adr_low), y
+    sta z_load_chip
+    tya
+    pha
+    ; z_load_chipに渡した圧縮情報をデコード
+    jsr decode_chip
+
+    pla
+    tay
+    iny
+
+    ; 並ぶチップ数を加算
+    lda z_chip_count
+    clc
+    adc z_counter
+    sta z_counter
+    ; 読み出し指定座標と比較
+    cmp z_load_x
+    ; 指定位置に到達するまでループ
+    bcc loop
+
+    ; 指定座標のチップ情報確定
+
+
+
+    ; 表示デバッグ
     ; 000:海
     lda #$20
     sta $2006
     lda #$00
     sta $2006
-    lda #$10
+    lda z_chip_chr1
     sta $2007
-    lda #$11
+    lda z_chip_chr2
     sta $2007
     lda #$20
     sta $2006
     lda #$20
     sta $2006
-    lda #$12
+    lda z_chip_chr3
     sta $2007
-    lda #$13
+    lda z_chip_chr4
     sta $2007
-    rts    
+
+    ; パレット
+    lda #$23
+    sta $2006
+    lda #$c0
+    sta $2006
+    lda z_chip_plt
+    sta $2007
+    rts
 .endproc
 
 
 ; ---------------------------------------------------------------------------
-.proc load_map_test
-    ; 000:海
-    lda #$20
-    sta $2006
-    lda #$00
-    sta $2006
-    lda #$10
-    sta $2007
-    lda #$11
-    sta $2007
-    lda #$20
-    sta $2006
-    lda #$20
-    sta $2006
-    lda #$12
-    sta $2007
-    lda #$13
-    sta $2007
+; z_load_chipにある圧縮チップ情報を解凍
+; z_chip: チップナンバー, z_count: 並んでいる数
+.proc decode_chip
+    ; 解析対象のデータロード
+    lda z_load_chip
+    ; 並ぶチップス数を仮決め
+    and #%00011111
+    sta z_chip_count
+    inc z_chip_count ; 値に1加える
 
-    ; 001:砂漠(または氷) - p1 - 36, 5
-    lda #$20
-    sta $2006
-    lda #$02
-    sta $2006
-    lda #$14
-    sta $2007
-    sta $2007
-    lda #$20
-    sta $2006
-    lda #$22
-    sta $2006
-    lda #$14
-    sta $2007
-    sta $2007
-
-    ; 010:草原 - p3 - 9
-    lda #$20
-    sta $2006
-    lda #$04
-    sta $2006
-    lda #$15
-    sta $2007
-    sta $2007
-    lda #$20
-    sta $2006
-    lda #$24
-    sta $2006
-    lda #$15
-    sta $2007
-    sta $2007
-
-    ; 011:茂み - p3 - 8
-    lda #$20
-    sta $2006
-    lda #$06
-    sta $2006
-    lda #$16
-    sta $2007
-    lda #$17
-    sta $2007
-    lda #$20
-    sta $2006
-    lda #$26
-    sta $2006
-    lda #$18
-    sta $2007
-    lda #$19
-    sta $2007
-
-    ; 100:木 - p3 - 3, 35
-    lda #$20
-    sta $2006
-    lda #$08
-    sta $2006
-    lda #$a0
-    sta $2007
-    lda #$a1
-    sta $2007
-    lda #$20
-    sta $2006
-    lda #$28
-    sta $2006
-    lda #$a2
-    sta $2007
-    lda #$a3
-    sta $2007
-
-    ; 101:山 - p2 - 20
-    lda #$20
-    sta $2006
-    lda #$0a
-    sta $2006
-    lda #$1a
-    sta $2007
-    lda #$1b
-    sta $2007
-    lda #$20
-    sta $2006
-    lda #$2a
-    sta $2006
-    lda #$1c
-    sta $2007
-    lda #$1d
-    sta $2007
-
-    ; 110:岩山 - p2 - 18
-    lda #$20
-    sta $2006
-    lda #$0c
-    sta $2006
-    lda #$1e
-    sta $2007
-    lda #$1f
-    sta $2007
-    lda #$20
-    sta $2006
-    lda #$2c
-    sta $2006
-    lda #$20
-    sta $2007
-    lda #$21
-    sta $2007
-
-    ; 111:毒沼 - p3 - 34
-    lda #$20
-    sta $2006
-    lda #$0e
-    sta $2006
-    lda #$22
-    sta $2007
-    sta $2007
-    lda #$20
-    sta $2006
-    lda #$2e
-    sta $2006
-    lda #$22
-    sta $2007
-    sta $2007
-
-    ; 01100:街左 - p2 - 10
-    lda #$20
-    sta $2006
-    lda #$10
-    sta $2006
-    lda #$34
-    sta $2007
-    lda #$35
-    sta $2007
-    lda #$20
-    sta $2006
-    lda #$30
-    sta $2006
-    lda #$36
-    sta $2007
-    lda #$37
-    sta $2007
-    ; 01101:街右 - p2 - 11
-    lda #$20
-    sta $2006
-    lda #$12
-    sta $2006
-    lda #$38
-    sta $2007
-    lda #$39
-    sta $2007
-    lda #$20
-    sta $2006
-    lda #$32
-    sta $2006
-    lda #$3a
-    sta $2007
-    lda #$3b
-    sta $2007
-
-    ; 01110:村 - p1 - 25
-    lda #$20
-    sta $2006
-    lda #$14
-    sta $2006
-    lda #$3c
-    sta $2007
-    lda #$3d
-    sta $2007
-    lda #$20
-    sta $2006
-    lda #$34
-    sta $2006
-    lda #$3e
-    sta $2007
-    lda #$3f
-    sta $2007
-
-    ; 01111:祠 - p2 - 30
-    lda #$20
-    sta $2006
-    lda #$16
-    sta $2006
-    lda #$40
-    sta $2007
-    lda #$41
-    sta $2007
-    lda #$20
-    sta $2006
-    lda #$36
-    sta $2006
-    lda #$42
-    sta $2007
-    lda #$43
-    sta $2007
-
-    ; 10010:洞窟 - p2 - 17
-    lda #$20
-    sta $2006
-    lda #$18
-    sta $2006
-    lda #$4c
-    sta $2007
-    lda #$4d
-    sta $2007
-    lda #$20
-    sta $2006
-    lda #$38
-    sta $2006
-    lda #$4e
-    sta $2007
-    lda #$4f
-    sta $2007
-
-    ; 10011:岩礁 - p0 - 16
-    lda #$20
-    sta $2006
-    lda #$1a
-    sta $2006
-    lda #$50
-    sta $2007
-    lda #$51
-    sta $2007
-    lda #$20
-    sta $2006
-    lda #$3a
-    sta $2006
-    lda #$52
-    sta $2007
-    lda #$53
-    sta $2007
-
-    ; 10100:橋左右 - p0 - 31
-    lda #$20
-    sta $2006
-    lda #$1c
-    sta $2006
-    lda #$54
-    sta $2007
-    lda #$55
-    sta $2007
-    lda #$20
-    sta $2006
-    lda #$3c
-    sta $2006
-    lda #$56
-    sta $2007
-    lda #$57
-    sta $2007
-
-    ; 10101:橋上下 - p0 - 41
-    lda #$20
-    sta $2006
-    lda #$1e
-    sta $2006
-    lda #$58
-    sta $2007
-    lda #$59
-    sta $2007
-    lda #$20
-    sta $2006
-    lda #$3e
-    sta $2006
-    lda #$5a
-    sta $2007
-    lda #$5b
-    sta $2007
-
-    ; 10111:ピラミッド - p1 - 38
-    lda #$20
-    sta $2006
-    lda #$40
-    sta $2006
-    lda #$5c
-    sta $2007
-    lda #$5d
-    sta $2007
-    lda #$20
-    sta $2006
-    lda #$60
-    sta $2006
-    lda #$5e
-    sta $2007
-    lda #$5f
-    sta $2007
-
-    ; 海 ----
-    ; >上 - 13
-    lda #$20
-    sta $2006
-    lda #$42
-    sta $2006
-    lda #$60
-    sta $2007
-    lda #$61
-    sta $2007
-    lda #$20
-    sta $2006
-    lda #$62
-    sta $2006
-    lda #$62
-    sta $2007
-    lda #$63
-    sta $2007
-
-    ; >右 - 7
-    lda #$20
-    sta $2006
-    lda #$44
-    sta $2006
-    lda #$64
-    sta $2007
-    lda #$65
-    sta $2007
-    lda #$20
-    sta $2006
-    lda #$64
-    sta $2006
-    lda #$66
-    sta $2007
-    lda #$67
-    sta $2007
-
-    ; >上右 - 15
-    lda #$20
-    sta $2006
-    lda #$46
-    sta $2006
-    lda #$68
-    sta $2007
-    lda #$69
-    sta $2007
-    lda #$20
-    sta $2006
-    lda #$66
-    sta $2006
-    lda #$6a
-    sta $2007
-    lda #$6b
-    sta $2007
-
-    ; >下 - 1
-    lda #$20
-    sta $2006
-    lda #$48
-    sta $2006
-    lda #$6c
-    sta $2007
-    lda #$6d
-    sta $2007
-    lda #$20
-    sta $2006
-    lda #$68
-    sta $2006
-    lda #$6e
-    sta $2007
-    lda #$6f
-    sta $2007
-
-    ; >上下 24
-    lda #$20
-    sta $2006
-    lda #$4a
-    sta $2006
-    lda #$70
-    sta $2007
-    lda #$71
-    sta $2007
-    lda #$20
-    sta $2006
-    lda #$6a
-    sta $2006
-    lda #$72
-    sta $2007
-    lda #$73
-    sta $2007
-
-    ; >右下 - 2
-    lda #$20
-    sta $2006
-    lda #$4c
-    sta $2006
-    lda #$74
-    sta $2007
-    lda #$75
-    sta $2007
-    lda #$20
-    sta $2006
-    lda #$6c
-    sta $2006
-    lda #$76
-    sta $2007
-    lda #$77
-    sta $2007
-
-    ; >上右下 - 22
-    lda #$20
-    sta $2006
-    lda #$4e
-    sta $2006
-    lda #$78
-    sta $2007
-    lda #$79
-    sta $2007
-    lda #$20
-    sta $2006
-    lda #$6e
-    sta $2006
-    lda #$7a
-    sta $2007
-    lda #$7b
-    sta $2007
-
-    ; >左 - 6
-    lda #$20
-    sta $2006
-    lda #$50
-    sta $2006
-    lda #$7c
-    sta $2007
-    lda #$7d
-    sta $2007
-    lda #$20
-    sta $2006
-    lda #$70
-    sta $2006
-    lda #$7e
-    sta $2007
-    lda #$7f
-    sta $2007
-
-    ; >左上 - 12
-    lda #$20
-    sta $2006
-    lda #$52
-    sta $2006
-    lda #$80
-    sta $2007
-    lda #$81
-    sta $2007
-    lda #$20
-    sta $2006
-    lda #$72
-    sta $2006
-    lda #$82
-    sta $2007
-    lda #$83
-    sta $2007
-
-    ; >左右 - 21
-    lda #$20
-    sta $2006
-    lda #$54
-    sta $2006
-    lda #$84
-    sta $2007
-    lda #$85
-    sta $2007
-    lda #$20
-    sta $2006
-    lda #$74
-    sta $2006
-    lda #$86
-    sta $2007
-    lda #$87
-    sta $2007
-
-    ; >左上右 - 19
-    lda #$20
-    sta $2006
-    lda #$56
-    sta $2006
-    lda #$88
-    sta $2007
-    lda #$89
-    sta $2007
-    lda #$20
-    sta $2006
-    lda #$76
-    sta $2006
-    lda #$8a
-    sta $2007
-    lda #$8b
-    sta $2007
-
-    ; >左下 - 4
-    lda #$20
-    sta $2006
-    lda #$58
-    sta $2006
-    lda #$8c
-    sta $2007
-    lda #$8d
-    sta $2007
-    lda #$20
-    sta $2006
-    lda #$78
-    sta $2006
-    lda #$8e
-    sta $2007
-    lda #$8f
-    sta $2007
-
-    ; >下左上 - 14
-    lda #$20
-    sta $2006
-    lda #$5a
-    sta $2006
-    lda #$90
-    sta $2007
-    lda #$91
-    sta $2007
-    lda #$20
-    sta $2006
-    lda #$7a
-    sta $2006
-    lda #$92
-    sta $2007
-    lda #$93
-    sta $2007
-
-    ; >左下右 - 39
-    lda #$20
-    sta $2006
-    lda #$5c
-    sta $2006
-    lda #$94
-    sta $2007
-    lda #$95
-    sta $2007
-    lda #$20
-    sta $2006
-    lda #$7c
-    sta $2006
-    lda #$96
-    sta $2007
-    lda #$97
-    sta $2007
-
-    ; 全て - 42
-    lda #$20
-    sta $2006
-    lda #$5e
-    sta $2006
-    lda #$98
-    sta $2007
-    lda #$99
-    sta $2007
-    lda #$20
-    sta $2006
-    lda #$7e
-    sta $2006
-    lda #$9a
-    sta $2007
-    lda #$9b
-    sta $2007
-
-
-    ; 01000:城上部左上 - p2 - 26
-    lda #$20
-    sta $2006
-    lda #$80
-    sta $2006
-    lda #$23
-    sta $2007
-    lda #$24
-    sta $2007
-    lda #$20
-    sta $2006
-    lda #$a0
-    sta $2006
-    lda #$25
-    sta $2007
-    lda #$26
-    sta $2007
-
-    ; 01001:城上部右上 - p2 - 27
-    lda #$20
-    sta $2006
-    lda #$82
-    sta $2006
-    lda #$27
-    sta $2007
-    lda #$28
-    sta $2007
-    lda #$20
-    sta $2006
-    lda #$a2
-    sta $2006
-    lda #$29
-    sta $2007
-    lda #$2a
-    sta $2007
-
-    ; 01010:城上部左下 - p2 - 28
-    lda #$20
-    sta $2006
-    lda #$c0
-    sta $2006
-    lda #$2b
-    sta $2007
-    lda #$2c
-    sta $2007
-    lda #$20
-    sta $2006
-    lda #$e0
-    sta $2006
-    lda #$2d
-    sta $2007
-    lda #$2e
-    sta $2007
-
-    ; 01011:城上部右下 - p2 - 29
-    lda #$20
-    sta $2006
-    lda #$c2
-    sta $2006
-    lda #$30
-    sta $2007
-    lda #$31
-    sta $2007
-    lda #$20
-    sta $2006
-    lda #$e2
-    sta $2006
-    lda #$32
-    sta $2007
-    lda #$33
-    sta $2007
-
-
-    ; 10000:塔上 - p1 - 32
-    lda #$20
-    sta $2006
-    lda #$84
-    sta $2006
-    lda #$44
-    sta $2007
-    lda #$45
-    sta $2007
-    lda #$20
-    sta $2006
-    lda #$a4
-    sta $2006
-    lda #$46
-    sta $2007
-    lda #$47
-    sta $2007
-
-    ; 10001:塔下 - p1 - 33
-    lda #$20
-    sta $2006
-    lda #$c4
-    sta $2006
-    lda #$48
-    sta $2007
-    lda #$49
-    sta $2007
-    lda #$20
-    sta $2006
-    lda #$e4
-    sta $2006
-    lda #$4a
-    sta $2007
-    lda #$4b
-    sta $2007
-
-    ; 001:氷(北半球) - p1 - 36, 5
-    lda #$20
-    sta $2006
-    lda #$86
-    sta $2006
-    lda #$9c
-    sta $2007
-    lda #$9d
-    sta $2007
-    lda #$20
-    sta $2006
-    lda #$a6
-    sta $2006
-    lda #$9e
-    sta $2007
-    lda #$9f
-    sta $2007
-
-    ; パレット指定
-    lda #$23
-    sta $2006
-    lda #$c0
-    sta $2006
-    lda #%00010100 ; ピラミット, 砂漠,海
-    sta $2007
-
-    lda #%00001111 ; 茂み,草原
-    sta $2007
-
-    lda #%00000111 ; 山,木
-    sta $2007
-
-    lda #%00001110 ; 毒沼,岩山
-    sta $2007
-
-    lda #%00001010 ; 街右,街左
-    sta $2007
-
-    lda #%00001001 ; 祠,村
-    sta $2007
-
-    lda #%00000010 ; 岩礁,洞窟
-    sta $2007
-
-    lda #%00000000 ; 橋上下, 橋左右
-    sta $2007
+    ; 上位3ビットを取得
+    lda z_load_chip
+    and #%11100000
     
-    lda #%10101010 ; 城
-    sta $2007
+    ; 代表的なチップはここで判定してしまう
+    cmp #%00000000 ; 海
+    bne check_001
+    ; 海確定
+    lda #$00
+    sta z_chip_info
 
-    lda #%00010001 ; 氷, 塔
-    sta $2007
-
-
-
-;---
-
-;11000::ブランク(火口) - 40
-
+    ldx #$10
+    stx z_chip_chr1
+    inx
+    stx z_chip_chr2
+    inx
+    stx z_chip_chr3
+    inx
+    stx z_chip_chr4
+    ldx #$00
+    stx z_chip_plt
     rts
 
+check_001: ; 001:砂漠(または氷)
+    cmp #%00100000
+    bne check_010
+    ; 砂漠(氷)確定 (01 or 18)
+    lda #$01
+    sta z_chip_info
+    
+    ; 南北判定
+    lda z_latitude
+    beq check_001_north; 北 - 氷
+    
+    ; 砂漠
+    ldx #$14
+    stx z_chip_chr1
+    inx
+    stx z_chip_chr2
+    inx
+    stx z_chip_chr3
+    inx
+    stx z_chip_chr4
+    ldx #$01
+    stx z_chip_plt
+    rts
+
+check_001_north: ; 氷
+    ldx #$9c
+    stx z_chip_chr1
+    inx
+    stx z_chip_chr2
+    inx
+    stx z_chip_chr3
+    inx
+    stx z_chip_chr4
+    ldx #$00
+    stx z_chip_plt
+    rts
+
+
+check_010: ; 草原
+    cmp #%01000000
+    bne check_011
+    ; 草原確定
+    lda #$02
+    sta z_chip_info
+
+    ldx #$15
+    stx z_chip_chr1
+    stx z_chip_chr2
+    stx z_chip_chr3
+    stx z_chip_chr4
+    ldx #$03
+    stx z_chip_plt
+    rts
+
+check_011: ; 茂み
+    cmp #%01100000
+    bne check_100
+    ; 茂み確定
+    lda #$03
+    sta z_chip_info
+
+    ldx #$16
+    stx z_chip_chr1
+    inx
+    stx z_chip_chr2
+    inx
+    stx z_chip_chr3
+    inx
+    stx z_chip_chr4
+    ldx #$03
+    stx z_chip_plt
+    rts
+
+check_100: ; 木
+    cmp #%10000000
+    bne check_101
+    ; 木確定
+    lda #$04
+    sta z_chip_info
+
+    ldx #$a0
+    stx z_chip_chr1
+    inx
+    stx z_chip_chr2
+    inx
+    stx z_chip_chr3
+    inx
+    stx z_chip_chr4
+    ldx #$03
+    stx z_chip_plt
+    rts
+
+check_101: ; 山
+    cmp #%10100000
+    bne check_110
+    ; 山確定
+    lda #$05
+    sta z_chip_info
+
+    ldx #$1a
+    stx z_chip_chr1
+    inx
+    stx z_chip_chr2
+    inx
+    stx z_chip_chr3
+    inx
+    stx z_chip_chr4
+    ldx #$02
+    stx z_chip_plt
+    rts
+
+check_110: ; 岩山
+    cmp #%11000000
+    bne check_111
+    ; 岩山確定
+    lda #$06
+    sta z_chip_info
+
+    ldx #$1e
+    stx z_chip_chr1
+    inx
+    stx z_chip_chr2
+    inx
+    stx z_chip_chr3
+    inx
+    stx z_chip_chr4
+    ldx #$02
+    stx z_chip_plt
+    rts
+    
+check_111: ; 代表チップ以外
+    ; 毒沼チェック countが9未満なら確定(countは1足しているので)
+    lda #$09
+    cmp z_chip_count
+    ; 8以上なら固定チップ
+    bcs check_one
+    ; 毒沼確定
+    lda #$07
+    sta z_chip_info
+
+    ldx #$22
+    stx z_chip_chr1
+    stx z_chip_chr2
+    stx z_chip_chr3
+    stx z_chip_chr4
+    ldx #$03
+    stx z_chip_plt
+    rts
+
+; 以降、1つだけ配置の特殊チップ
+check_one:
+    ; カウントを1に設定
+    lda #$01
+    sta z_chip_count
+
+    ; チップ判定
+    lda z_load_chip
+    
+    ; 城上部左上
+    cmp #%11101000
+    bne check_11101001
+    ; 城上部左上確定
+    lda #$08
+    sta z_chip_info
+
+    ldx #$23
+    stx z_chip_chr1
+    inx
+    stx z_chip_chr2
+    inx
+    stx z_chip_chr3
+    inx
+    stx z_chip_chr4
+    ldx #$02
+    stx z_chip_plt
+    rts
+
+check_11101001: ; 城上部右上
+    cmp #%11101001
+    bne check_11101010
+    lda #$09
+    sta z_chip_info
+
+    ldx #$27
+    stx z_chip_chr1
+    inx
+    stx z_chip_chr2
+    inx
+    stx z_chip_chr3
+    inx
+    stx z_chip_chr4
+    ldx #$02
+    stx z_chip_plt
+    rts
+
+check_11101010: ; 城上部左下
+    cmp #%11101010
+    bne check_11101011
+    lda #$0a
+    sta z_chip_info
+
+    ldx #$2b
+    stx z_chip_chr1
+    inx
+    stx z_chip_chr2
+    inx
+    stx z_chip_chr3
+    inx
+    stx z_chip_chr4
+    ldx #$02
+    stx z_chip_plt
+    rts
+
+check_11101011: ; 城上部右下
+    cmp #%11101011
+    bne check_11101100
+    lda #$0b
+    sta z_chip_info
+
+    ldx #$30
+    stx z_chip_chr1
+    inx
+    stx z_chip_chr2
+    inx
+    stx z_chip_chr3
+    inx
+    stx z_chip_chr4
+    ldx #$02
+    stx z_chip_plt
+    rts
+
+check_11101100: ; 街左
+    cmp #%11101100
+    bne check_11101101
+    lda #$0c
+    sta z_chip_info
+
+    ldx #$34
+    stx z_chip_chr1
+    inx
+    stx z_chip_chr2
+    inx
+    stx z_chip_chr3
+    inx
+    stx z_chip_chr4
+    ldx #$02
+    stx z_chip_plt
+    rts
+
+check_11101101: ; 街右
+    cmp #%11101101
+    bne check_11101110
+    lda #$0d
+    sta z_chip_info
+
+    ldx #$38
+    stx z_chip_chr1
+    inx
+    stx z_chip_chr2
+    inx
+    stx z_chip_chr3
+    inx
+    stx z_chip_chr4
+    ldx #$02
+    stx z_chip_plt
+    rts
+
+check_11101110: ; 村
+    cmp #%11101110
+    bne check_11101111
+    lda #$0e
+    sta z_chip_info
+
+    ldx #$3c
+    stx z_chip_chr1
+    inx
+    stx z_chip_chr2
+    inx
+    stx z_chip_chr3
+    inx
+    stx z_chip_chr4
+    ldx #$01
+    stx z_chip_plt
+    rts
+
+check_11101111: ; 祠
+    cmp #%11101111
+    bne check_11110000
+    lda #$0f
+    sta z_chip_info
+
+    ldx #$40
+    stx z_chip_chr1
+    inx
+    stx z_chip_chr2
+    inx
+    stx z_chip_chr3
+    inx
+    stx z_chip_chr4
+    ldx #$02
+    stx z_chip_plt
+    rts
+
+check_11110000: ; 塔上
+    cmp #%11110000
+    bne check_11110001
+    lda #$10
+    sta z_chip_info
+
+    ldx #$44
+    stx z_chip_chr1
+    inx
+    stx z_chip_chr2
+    inx
+    stx z_chip_chr3
+    inx
+    stx z_chip_chr4
+    ldx #$01
+    stx z_chip_plt
+    rts
+
+check_11110001: ; 塔下
+    cmp #%11110001
+    bne check_11110010
+    lda #$11
+    sta z_chip_info
+
+    ldx #$48
+    stx z_chip_chr1
+    inx
+    stx z_chip_chr2
+    inx
+    stx z_chip_chr3
+    inx
+    stx z_chip_chr4
+    ldx #$01
+    stx z_chip_plt
+    rts
+
+check_11110010: ; 洞窟
+    cmp #%11110010
+    bne check_11110011
+    lda #$12
+    sta z_chip_info
+
+    ldx #$4c
+    stx z_chip_chr1
+    inx
+    stx z_chip_chr2
+    inx
+    stx z_chip_chr3
+    inx
+    stx z_chip_chr4
+    ldx #$02
+    stx z_chip_plt
+    rts
+
+check_11110011: ; 岩礁
+    cmp #%11110011
+    bne check_11110100
+    lda #$13
+    sta z_chip_info
+
+    ldx #$50
+    stx z_chip_chr1
+    inx
+    stx z_chip_chr2
+    inx
+    stx z_chip_chr3
+    inx
+    stx z_chip_chr4
+    ldx #$00
+    stx z_chip_plt
+    rts
+
+check_11110100: ; 橋左右
+    cmp #%11110100
+    bne check_11110101
+    lda #$14
+    sta z_chip_info
+
+    ldx #$54
+    stx z_chip_chr1
+    inx
+    stx z_chip_chr2
+    inx
+    stx z_chip_chr3
+    inx
+    stx z_chip_chr4
+    ldx #$00
+    stx z_chip_plt
+    rts
+
+check_11110101: ; 橋上下
+    cmp #%11110101
+    bne check_11110111
+    lda #$15
+    sta z_chip_info
+
+    ldx #$58
+    stx z_chip_chr1
+    inx
+    stx z_chip_chr2
+    inx
+    stx z_chip_chr3
+    inx
+    stx z_chip_chr4
+    ldx #$00
+    stx z_chip_plt
+    rts
+
+check_11110111: ; ピラミッド
+    cmp #%11110111
+    bne check_11111000
+    lda #$16
+    sta z_chip_info
+
+    ldx #$5c
+    stx z_chip_chr1
+    inx
+    stx z_chip_chr2
+    inx
+    stx z_chip_chr3
+    inx
+    stx z_chip_chr4
+    ldx #$01
+    stx z_chip_plt
+    rts
+
+check_11111000: ; ブランク(火口)
+    lda #$17
+    sta z_chip_info
+
+    ldx #$00
+    stx z_chip_chr1
+    stx z_chip_chr2
+    stx z_chip_chr3
+    stx z_chip_chr4
+    stx z_chip_plt
+
+    rts
 .endproc
+
+
+
+; ---------------------------------------------------------------------------
 
 
 ; ---------------------------------------------------------------------------
@@ -925,13 +706,32 @@ palettes:
 ; 変数定義
 .org $0000 ; ゼロページ領域
 z_frame: .byte $00 ; VBlank毎にカウントアップ
-z_chip: .byte $00
-z_count: .byte $00
+z_chip_info: .byte $00 ; 読み込んだチップ情報
+z_chip_count: .byte $00 ; 読み込んだチップのカウント
+z_chip_chr1: .byte $00
+z_chip_chr2: .byte $00
+z_chip_chr3: .byte $00
+z_chip_chr4: .byte $00
+z_chip_plt: .byte $00
+
+; サブルーチン呼び出し用の一時領域
+z_load_x: .byte $00 ; 読み込むチップの座標x
+z_load_y: .byte $00 ; 読み込むチップの座標y
+z_load_chip: .byte $00 ; 読み込みチップの圧縮情報
+z_adr_low: .byte $00 ; 間接アドレッシング用low
+z_adr_high: .byte $00 ; 間接アドレッシング用high
+z_latitude: .byte $00 ; 砂漠、氷判定用緯度 0:北半球, 1:南半球
+z_counter: .byte $00
 
 .org $0050
 z_debug: .byte $00
 
 ; スタック領域は$0100~$01ff
+
+; マップデータ
+.org $0200
+w_map: .byte $00
+
 
 .segment "VECINFO"
     .word vblank_loop ; VBlank割り込み時に実行するルーチン
