@@ -40,14 +40,9 @@ copypal:
     dey ; yデクリメント
     bne copypal ; yデクリメントの結果0にならなかったらcopypalに戻る
 
-; マップ情報を表示
-    lda #$5b
-    sta z_load_x
-    lda #$9c
-    sta z_load_y
 
-    ; 指定座標のチップをロード
-    jsr load_chip
+; マップの表示テスト
+    jsr load_debug
 
 ; BGのスクリーン表示位置設定左上にぴったり(スクロール設定)
     lda #$00
@@ -66,6 +61,275 @@ infinity_loop:
     jmp infinity_loop
 
 .endproc
+
+
+; マップの読み込みテスト
+.proc load_debug
+
+; マップ情報を表示
+    lda #$00
+    sta z_debug4
+    sta z_load_x
+    lda #$1c
+    sta z_load_y
+
+    lda #$20
+    sta z_debug1
+    lda #$00
+    sta z_debug2
+    lda #$20
+    sta z_debug3
+    jsr load_debug_line
+
+; 2行目--
+    inc z_debug4
+    lda z_debug4
+    sta z_load_x
+    inc z_load_y
+
+    lda #$20
+    sta z_debug1
+    lda #$40
+    sta z_debug2
+    lda #$60
+    sta z_debug3
+    jsr load_debug_line
+
+; 3行目--
+    inc z_debug4
+    lda z_debug4
+    sta z_load_x
+    inc z_load_y
+
+    lda #$20
+    sta z_debug1
+    lda #$80
+    sta z_debug2
+    lda #$a0
+    sta z_debug3
+    jsr load_debug_line
+
+; 4行目--
+    inc z_debug4
+    lda z_debug4
+    sta z_load_x
+    inc z_load_y
+
+    lda #$20
+    sta z_debug1
+    lda #$c0
+    sta z_debug2
+    lda #$e0
+    sta z_debug3
+    jsr load_debug_line
+
+
+; 5行目--
+    inc z_debug4
+    lda z_debug4
+    sta z_load_x
+    inc z_load_y
+
+    lda #$21
+    sta z_debug1
+    lda #$00
+    sta z_debug2
+    lda #$20
+    sta z_debug3
+    jsr load_debug_line
+
+; 6行目--
+    inc z_debug4
+    lda z_debug4
+    sta z_load_x
+    inc z_load_y
+
+    lda #$21
+    sta z_debug1
+    lda #$40
+    sta z_debug2
+    lda #$60
+    sta z_debug3
+    jsr load_debug_line
+
+; 7行目--
+    inc z_debug4
+    lda z_debug4
+    sta z_load_x
+    inc z_load_y
+
+    lda #$21
+    sta z_debug1
+    lda #$80
+    sta z_debug2
+    lda #$a0
+    sta z_debug3
+    jsr load_debug_line
+
+; 8行目--
+    inc z_debug4
+    lda z_debug4
+    sta z_load_x
+    inc z_load_y
+
+    lda #$21
+    sta z_debug1
+    lda #$c0
+    sta z_debug2
+    lda #$e0
+    sta z_debug3
+    jsr load_debug_line
+
+; 9行目--
+    inc z_debug4
+    lda z_debug4
+    sta z_load_x
+    inc z_load_y
+
+    lda #$22
+    sta z_debug1
+    lda #$00
+    sta z_debug2
+    lda #$20
+    sta z_debug3
+    jsr load_debug_line
+
+; 10行目--
+    inc z_debug4
+    lda z_debug4
+    sta z_load_x
+    inc z_load_y
+
+    lda #$22
+    sta z_debug1
+    lda #$40
+    sta z_debug2
+    lda #$60
+    sta z_debug3
+    jsr load_debug_line
+
+; 11行目--
+    inc z_debug4
+    lda z_debug4
+    sta z_load_x
+    inc z_load_y
+
+    lda #$22
+    sta z_debug1
+    lda #$80
+    sta z_debug2
+    lda #$a0
+    sta z_debug3
+    jsr load_debug_line
+
+; 12行目--
+    inc z_debug4
+    lda z_debug4
+    sta z_load_x
+    inc z_load_y
+
+    lda #$22
+    sta z_debug1
+    lda #$c0
+    sta z_debug2
+    lda #$e0
+    sta z_debug3
+    jsr load_debug_line
+
+; 13行目--
+    inc z_debug4
+    lda z_debug4
+    sta z_load_x
+    inc z_load_y
+
+    lda #$23
+    sta z_debug1
+    lda #$00
+    sta z_debug2
+    lda #$20
+    sta z_debug3
+    jsr load_debug_line
+
+; 14行目--
+    inc z_debug4
+    lda z_debug4
+    sta z_load_x
+    inc z_load_y
+
+    lda #$23
+    sta z_debug1
+    lda #$40
+    sta z_debug2
+    lda #$60
+    sta z_debug3
+    jsr load_debug_line
+
+; 15行目--
+    inc z_debug4
+    lda z_debug4
+    sta z_load_x
+    inc z_load_y
+
+    lda #$23
+    sta z_debug1
+    lda #$80
+    sta z_debug2
+    lda #$a0
+    sta z_debug3
+    jsr load_debug_line
+
+    rts
+.endproc
+
+
+
+; 指定座標1行分ロード
+.proc load_debug_line
+    lda #$10
+    sta z_debug
+
+loop:
+    jsr load_chip
+
+    ; 描画
+    lda z_debug1
+    sta $2006
+    lda z_debug2
+    sta $2006
+    lda z_chip_chr1
+    sta $2007
+    lda z_chip_chr2
+    sta $2007
+    lda z_debug1
+    sta $2006
+    lda z_debug3
+    sta $2006
+    lda z_chip_chr3
+    sta $2007
+    lda z_chip_chr4
+    sta $2007
+
+    inc z_debug2
+    inc z_debug2
+    inc z_debug3
+    inc z_debug3
+
+    inc z_load_x
+    dec z_debug
+    lda z_debug
+    bne loop
+
+    ; パレットは一旦保留
+    ;lda #$23
+    ;sta $2006
+    ;lda #$c0
+    ;sta $2006
+    ;lda z_chip_plt
+    ;sta $2007
+
+    rts
+.endproc
+
 
 ; ---------------------------------------------------------------------------
 .proc load_chip
@@ -132,35 +396,6 @@ loop:
     bcc loop
 
     ; 指定座標のチップ情報確定
-
-
-
-    ; 表示デバッグ
-    ; 000:海
-    lda #$20
-    sta $2006
-    lda #$00
-    sta $2006
-    lda z_chip_chr1
-    sta $2007
-    lda z_chip_chr2
-    sta $2007
-    lda #$20
-    sta $2006
-    lda #$20
-    sta $2006
-    lda z_chip_chr3
-    sta $2007
-    lda z_chip_chr4
-    sta $2007
-
-    ; パレット
-    lda #$23
-    sta $2006
-    lda #$c0
-    sta $2006
-    lda z_chip_plt
-    sta $2007
     rts
 .endproc
 
@@ -331,10 +566,10 @@ check_110: ; 岩山
     
 check_111: ; 代表チップ以外
     ; 毒沼チェック countが9未満なら確定(countは1足しているので)
-    lda #$09
+    lda #$08
     cmp z_chip_count
     ; 8以上なら固定チップ
-    bcs check_one
+    bcc check_one
     ; 毒沼確定
     lda #$07
     sta z_chip_info
@@ -594,7 +829,7 @@ check_11110100: ; 橋左右
 
 check_11110101: ; 橋上下
     cmp #%11110101
-    bne check_11110111
+    bne check_11110110
     lda #$15
     sta z_chip_info
 
@@ -610,9 +845,9 @@ check_11110101: ; 橋上下
     stx z_chip_plt
     rts
 
-check_11110111: ; ピラミッド
-    cmp #%11110111
-    bne check_11111000
+check_11110110: ; ピラミッド
+    cmp #%11110110
+    bne check_11110111
     lda #$16
     sta z_chip_info
 
@@ -628,7 +863,7 @@ check_11110111: ; ピラミッド
     stx z_chip_plt
     rts
 
-check_11111000: ; ブランク(火口)
+check_11110111: ; ブランク(火口)
     lda #$17
     sta z_chip_info
 
@@ -701,7 +936,7 @@ palettes:
 
 
 ; マップ情報
-.include "data/mapdata.asm"
+.include "mapdata.asm"
 
 ; 変数定義
 .org $0000 ; ゼロページ領域
@@ -721,14 +956,19 @@ z_load_chip: .byte $00 ; 読み込みチップの圧縮情報
 z_adr_low: .byte $00 ; 間接アドレッシング用low
 z_adr_high: .byte $00 ; 間接アドレッシング用high
 z_latitude: .byte $00 ; 砂漠、氷判定用緯度 0:北半球, 1:南半球
+
+.org $0040
 z_counter: .byte $00
 
 .org $0050
 z_debug: .byte $00
-
+z_debug1: .byte $00
+z_debug2: .byte $00
+z_debug3: .byte $00
+z_debug4: .byte $00
 ; スタック領域は$0100~$01ff
 
-; マップデータ
+; マップデータワーク
 .org $0200
 w_map: .byte $00
 
