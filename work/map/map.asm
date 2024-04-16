@@ -70,7 +70,7 @@ infinity_loop:
     lda #$00
     sta z_debug4
     sta z_load_x
-    lda #$1c
+    lda #$00
     sta z_load_y
 
     lda #$20
@@ -80,7 +80,7 @@ infinity_loop:
     lda #$20
     sta z_debug3
     jsr load_debug_line
-
+rts
 ; 2行目--
     inc z_debug4
     lda z_debug4
@@ -285,8 +285,9 @@ infinity_loop:
 
 ; 指定座標1行分ロード
 .proc load_debug_line
-    lda #$10
+    lda #$02
     sta z_debug
+
 
 loop:
     jsr load_chip
@@ -356,7 +357,7 @@ loop:
     jmp load_y_end
 
 load_down: ; 南半球のデータロード
-    ; 緯度を南に瀬戸
+    ; 緯度を南に設定
     lda #$01
     sta z_latitude
 
@@ -949,6 +950,7 @@ z_chip_chr3: .byte $00
 z_chip_chr4: .byte $00
 z_chip_plt: .byte $00
 
+.org $0010
 ; サブルーチン呼び出し用の一時領域
 z_load_x: .byte $00 ; 読み込むチップの座標x
 z_load_y: .byte $00 ; 読み込むチップの座標y
