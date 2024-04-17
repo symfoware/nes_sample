@@ -67,11 +67,15 @@ infinity_loop:
 .proc load_debug
 
 ; マップ情報を表示
-    lda #$00
+    ; x:$07, y:$1d エジンベア
+    ; x:$9f, y:$cd アリアハン
+    ; x:$95, y:$b3 レーベ
+    lda #$da
     sta z_debug4
     sta z_load_x
-    lda #$00
+    lda #$96
     sta z_load_y
+
 
     lda #$20
     sta z_debug1
@@ -80,9 +84,7 @@ infinity_loop:
     lda #$20
     sta z_debug3
     jsr load_debug_line
-rts
 ; 2行目--
-    inc z_debug4
     lda z_debug4
     sta z_load_x
     inc z_load_y
@@ -96,7 +98,6 @@ rts
     jsr load_debug_line
 
 ; 3行目--
-    inc z_debug4
     lda z_debug4
     sta z_load_x
     inc z_load_y
@@ -110,7 +111,6 @@ rts
     jsr load_debug_line
 
 ; 4行目--
-    inc z_debug4
     lda z_debug4
     sta z_load_x
     inc z_load_y
@@ -125,7 +125,6 @@ rts
 
 
 ; 5行目--
-    inc z_debug4
     lda z_debug4
     sta z_load_x
     inc z_load_y
@@ -138,8 +137,8 @@ rts
     sta z_debug3
     jsr load_debug_line
 
+
 ; 6行目--
-    inc z_debug4
     lda z_debug4
     sta z_load_x
     inc z_load_y
@@ -153,7 +152,6 @@ rts
     jsr load_debug_line
 
 ; 7行目--
-    inc z_debug4
     lda z_debug4
     sta z_load_x
     inc z_load_y
@@ -167,7 +165,6 @@ rts
     jsr load_debug_line
 
 ; 8行目--
-    inc z_debug4
     lda z_debug4
     sta z_load_x
     inc z_load_y
@@ -181,7 +178,6 @@ rts
     jsr load_debug_line
 
 ; 9行目--
-    inc z_debug4
     lda z_debug4
     sta z_load_x
     inc z_load_y
@@ -195,7 +191,6 @@ rts
     jsr load_debug_line
 
 ; 10行目--
-    inc z_debug4
     lda z_debug4
     sta z_load_x
     inc z_load_y
@@ -209,7 +204,6 @@ rts
     jsr load_debug_line
 
 ; 11行目--
-    inc z_debug4
     lda z_debug4
     sta z_load_x
     inc z_load_y
@@ -223,7 +217,6 @@ rts
     jsr load_debug_line
 
 ; 12行目--
-    inc z_debug4
     lda z_debug4
     sta z_load_x
     inc z_load_y
@@ -237,7 +230,6 @@ rts
     jsr load_debug_line
 
 ; 13行目--
-    inc z_debug4
     lda z_debug4
     sta z_load_x
     inc z_load_y
@@ -251,7 +243,6 @@ rts
     jsr load_debug_line
 
 ; 14行目--
-    inc z_debug4
     lda z_debug4
     sta z_load_x
     inc z_load_y
@@ -265,7 +256,6 @@ rts
     jsr load_debug_line
 
 ; 15行目--
-    inc z_debug4
     lda z_debug4
     sta z_load_x
     inc z_load_y
@@ -285,7 +275,7 @@ rts
 
 ; 指定座標1行分ロード
 .proc load_debug_line
-    lda #$02
+    lda #$10
     sta z_debug
 
 
@@ -392,9 +382,10 @@ loop:
     adc z_counter
     sta z_counter
     ; 読み出し指定座標と比較
-    cmp z_load_x
+    lda z_load_x
+    cmp z_counter
     ; 指定位置に到達するまでループ
-    bcc loop
+    bcs loop
 
     ; 指定座標のチップ情報確定
     rts
