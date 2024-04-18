@@ -2,24 +2,14 @@ CL65	= cl65
 LD65	= ld65
 
 #-------------------------------------------------------------------------------
-CSOURCES =
-
 ASMSOURCES =	map.asm
 
-OBJECTS	=	$(CSOURCES:.c=.o) $(ASMSOURCES:.asm=.o)
-
-LIBRARIES =
+OBJECTS	=	$(ASMSOURCES:.asm=.o)
+# $(ASMSOURCES:.asm=.o) -> 拡張子変換っぽいmap.oに変換される
 #-------------------------------------------------------------------------------
-all :	$(OBJECTS) $(LIBRARIES)
+all :
+	$(CL65) -t none -o $(OBJECTS) -c $(ASMSOURCES)
 	$(LD65) -o map.nes --config map.cfg --obj $(OBJECTS)
-
-.SUFFIXES : .asm .o
-
-.c.o :
-	$(CL65) -t none -o $*.o -c -O $*.c
-
-.asm.o :
-	$(CL65) -t none -o $*.o -c $*.asm
 
 clean :
 	rm *.o
