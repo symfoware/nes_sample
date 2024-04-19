@@ -1,24 +1,24 @@
-; z_load_y, z_load_yで指定した座標のマップ情報を
+; z_chip_load_y, z_chip_load_yで指定した座標のマップ情報を
 ; z_chip_info
 ; z_chip_chr1, z_chip_chr2, z_chip_chr3, z_chip_chr4
 ; z_chip_plt
 ; に設定する
 ; 使用
-; z_latitude
-; z_adr_low
-; z_adr_high
-; z_counter
-; z_load_chip
+; z_chip_latitude
+; z_chip_adr_low
+; z_chip_adr_high
+; z_chip_counter
+; z_chip_load_chip
 .proc load_chip
     ; 緯度を北にセット
     lda #$00
-    sta z_latitude
+    sta z_chip_latitude
 
     ; 読み込むチップのy座標
-    lda z_load_y
+    lda z_chip_load_y
     ; word単位で進むので2倍する
     clc
-    adc z_load_y
+    adc z_chip_load_y
     tay
     ; キャリーしたかで読み込むマップの上下を判定
     bcs load_down ; 南半球
@@ -26,36 +26,36 @@
     ; 北半球のデータロード
     ; 行の座標データ取得
     lda mapup, y
-    sta z_adr_low
+    sta z_chip_adr_low
     iny
     lda mapup, y
-    sta z_adr_high
+    sta z_chip_adr_high
     jmp load_y_end
 
 load_down: ; 南半球のデータロード
     ; 緯度を南に設定
     lda #$01
-    sta z_latitude
+    sta z_chip_latitude
 
     lda mapdown, y
-    sta z_adr_low
+    sta z_chip_adr_low
     iny
     lda mapdown, y
-    sta z_adr_high
+    sta z_chip_adr_high
 
 load_y_end:
 
     ; カウンター初期化
     lda #$00
-    sta z_counter
+    sta z_chip_counter
     ; 対象列の最初のチップロード
     ldy #$00
 loop:
-    lda (z_adr_low), y
-    sta z_load_chip
+    lda (z_chip_adr_low), y
+    sta z_chip_load_chip
     tya
     pha
-    ; z_load_chipに渡した圧縮情報をデコード
+    ; z_chip_load_chipに渡した圧縮情報をデコード
     jsr decode_chip
 
     pla
@@ -65,11 +65,11 @@ loop:
     ; 並ぶチップ数を加算
     lda z_chip_count
     clc
-    adc z_counter
-    sta z_counter
+    adc z_chip_counter
+    sta z_chip_counter
     ; 読み出し指定座標と比較
-    lda z_load_x
-    cmp z_counter
+    lda z_chip_load_x
+    cmp z_chip_counter
     ; 指定位置に到達するまでループ
     bcs loop
 
@@ -78,18 +78,18 @@ loop:
 .endproc
 
 ; ---------------------------------------------------------------------------
-; z_load_chipにある圧縮チップ情報を解凍
+; z_chip_load_chipにある圧縮チップ情報を解凍
 ; z_chip: チップナンバー, z_count: 並んでいる数
 .proc decode_chip
     ; 解析対象のデータロード
-    lda z_load_chip
+    lda z_chip_load_chip
     ; 並ぶチップス数を仮決め
     and #%00011111
     sta z_chip_count
     inc z_chip_count ; 値に1加える
 
     ; 上位3ビットを取得
-    lda z_load_chip
+    lda z_chip_load_chip
     and #%11100000
     
     ; 代表的なチップはここで判定してしまう
@@ -119,7 +119,7 @@ check_001: ; 001:砂漠(または氷)
     sta z_chip_info
     
     ; 南北判定
-    lda z_latitude
+    lda z_chip_latitude
     beq check_001_north; 北 - 氷
     
     ; 砂漠
@@ -267,7 +267,7 @@ check_one:
     sta z_chip_count
 
     ; チップ判定
-    lda z_load_chip
+    lda z_chip_load_chip
     
     ; 城上部左上
     cmp #%11101000

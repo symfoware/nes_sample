@@ -73,9 +73,9 @@ infinity_loop:
     ; x:$da, y:$96 サマンオサ付近
     lda #$07
     sta z_debug4
-    sta z_load_x
+    sta z_chip_load_x
     lda #$1d
-    sta z_load_y
+    sta z_chip_load_y
 
 
     lda #$20
@@ -87,8 +87,8 @@ infinity_loop:
     jsr load_debug_line
 ; 2行目--
     lda z_debug4
-    sta z_load_x
-    inc z_load_y
+    sta z_chip_load_x
+    inc z_chip_load_y
 
     lda #$20
     sta z_debug1
@@ -100,8 +100,8 @@ infinity_loop:
 
 ; 3行目--
     lda z_debug4
-    sta z_load_x
-    inc z_load_y
+    sta z_chip_load_x
+    inc z_chip_load_y
 
     lda #$20
     sta z_debug1
@@ -113,8 +113,8 @@ infinity_loop:
 
 ; 4行目--
     lda z_debug4
-    sta z_load_x
-    inc z_load_y
+    sta z_chip_load_x
+    inc z_chip_load_y
 
     lda #$20
     sta z_debug1
@@ -127,8 +127,8 @@ infinity_loop:
 
 ; 5行目--
     lda z_debug4
-    sta z_load_x
-    inc z_load_y
+    sta z_chip_load_x
+    inc z_chip_load_y
 
     lda #$21
     sta z_debug1
@@ -141,8 +141,8 @@ infinity_loop:
 
 ; 6行目--
     lda z_debug4
-    sta z_load_x
-    inc z_load_y
+    sta z_chip_load_x
+    inc z_chip_load_y
 
     lda #$21
     sta z_debug1
@@ -154,8 +154,8 @@ infinity_loop:
 
 ; 7行目--
     lda z_debug4
-    sta z_load_x
-    inc z_load_y
+    sta z_chip_load_x
+    inc z_chip_load_y
 
     lda #$21
     sta z_debug1
@@ -167,8 +167,8 @@ infinity_loop:
 
 ; 8行目--
     lda z_debug4
-    sta z_load_x
-    inc z_load_y
+    sta z_chip_load_x
+    inc z_chip_load_y
 
     lda #$21
     sta z_debug1
@@ -180,8 +180,8 @@ infinity_loop:
 
 ; 9行目--
     lda z_debug4
-    sta z_load_x
-    inc z_load_y
+    sta z_chip_load_x
+    inc z_chip_load_y
 
     lda #$22
     sta z_debug1
@@ -193,8 +193,8 @@ infinity_loop:
 
 ; 10行目--
     lda z_debug4
-    sta z_load_x
-    inc z_load_y
+    sta z_chip_load_x
+    inc z_chip_load_y
 
     lda #$22
     sta z_debug1
@@ -206,8 +206,8 @@ infinity_loop:
 
 ; 11行目--
     lda z_debug4
-    sta z_load_x
-    inc z_load_y
+    sta z_chip_load_x
+    inc z_chip_load_y
 
     lda #$22
     sta z_debug1
@@ -219,8 +219,8 @@ infinity_loop:
 
 ; 12行目--
     lda z_debug4
-    sta z_load_x
-    inc z_load_y
+    sta z_chip_load_x
+    inc z_chip_load_y
 
     lda #$22
     sta z_debug1
@@ -232,8 +232,8 @@ infinity_loop:
 
 ; 13行目--
     lda z_debug4
-    sta z_load_x
-    inc z_load_y
+    sta z_chip_load_x
+    inc z_chip_load_y
 
     lda #$23
     sta z_debug1
@@ -245,8 +245,8 @@ infinity_loop:
 
 ; 14行目--
     lda z_debug4
-    sta z_load_x
-    inc z_load_y
+    sta z_chip_load_x
+    inc z_chip_load_y
 
     lda #$23
     sta z_debug1
@@ -258,8 +258,8 @@ infinity_loop:
 
 ; 15行目--
     lda z_debug4
-    sta z_load_x
-    inc z_load_y
+    sta z_chip_load_x
+    inc z_chip_load_y
 
     lda #$23
     sta z_debug1
@@ -269,6 +269,51 @@ infinity_loop:
     sta z_debug3
     jsr load_debug_line
 
+    rts
+.endproc
+
+
+; 指定座標から1行分の情報をメモリw_mapにロード
+.proc load_horizontal
+    lda #$10
+    sta z_load_counter
+    ldy #$00
+
+loop:
+    jsr load_chip
+
+    ; メモリに転送
+    lda z_chip_chr1
+    sta w_map, y
+    iny
+
+    lda z_chip_chr2
+    sta w_map, y
+    iny
+
+    lda z_chip_chr3
+    sta w_map, y
+    iny
+
+    lda z_chip_chr4
+    sta w_map, y
+    iny
+
+    ; x座標を進める
+    inc z_chip_load_x
+    dec z_load_counter
+    lda z_load_counter
+    bne loop
+
+    ; 終端マーカー
+    lda #$00
+    sta w_map, y
+
+    rts
+.endproc
+
+; 指定座標から1列分の情報をメモリw_mapにロード
+.proc load_vertical
     rts
 .endproc
 
@@ -306,7 +351,7 @@ loop:
     inc z_debug3
     inc z_debug3
 
-    inc z_load_x
+    inc z_chip_load_x
     dec z_debug
     lda z_debug
     bne loop
@@ -402,15 +447,17 @@ z_chip_plt: .byte $00
 
 .org $0010
 ; サブルーチン呼び出し用の一時領域
-z_load_x: .byte $00 ; 読み込むチップの座標x
-z_load_y: .byte $00 ; 読み込むチップの座標y
-z_load_chip: .byte $00 ; 読み込みチップの圧縮情報
-z_adr_low: .byte $00 ; 間接アドレッシング用low
-z_adr_high: .byte $00 ; 間接アドレッシング用high
-z_latitude: .byte $00 ; 砂漠、氷判定用緯度 0:北半球, 1:南半球
+; チップ読み込み関連
+z_chip_load_x: .byte $00 ; 読み込むチップの座標x
+z_chip_load_y: .byte $00 ; 読み込むチップの座標y
+z_chip_load_chip: .byte $00 ; 読み込みチップの圧縮情報
+z_chip_adr_low: .byte $00 ; 間接アドレッシング用low
+z_chip_adr_high: .byte $00 ; 間接アドレッシング用high
+z_chip_latitude: .byte $00 ; 砂漠、氷判定用緯度 0:北半球, 1:南半球
+z_chip_counter: .byte $00 ; チップロードサブルーチンで使用するカウンター
 
-.org $0040
-z_counter: .byte $00
+
+z_load_counter: .byte $00
 
 .org $0050
 z_debug: .byte $00
