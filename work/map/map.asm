@@ -311,7 +311,9 @@ loop:
 
     ; この後パレット情報の指定が必要になる
     ; どう実装すればよいか要検討
-    ; 妙案浮かばず
+    ; 別のメモリ領域に入れる?
+    lda z_chip_plt
+    sta w_plt
 
     rts
 .endproc
@@ -475,6 +477,8 @@ z_debug4: .byte $00
 .org $0200
 w_map: .byte $00
 
+; パレットデータワーク
+w_plt: .org $0300
 
 .segment "VECINFO"
     .word vblank_loop ; VBlank割り込み時に実行するルーチン
